@@ -2,7 +2,7 @@
    anche senza rete. Prima prova la rete, se non c'è usa la copia salvata.
    Più app possono stare sullo stesso dominio: ognuna tocca solo le sue cache (prefisso APP_ID). */
 const APP_ID = 'sesto-continente--islanda-2027';
-const CACHE = APP_ID + '-3.0.202610171156';
+const CACHE = APP_ID + '-3.0.202610171202';
 const FILE = ['./', './index.html', './manifest.webmanifest', './icona-180.png', './icona-192.png', './icona-512.png', './vendor/leaflet/leaflet.js', './vendor/leaflet/leaflet.css'];
 
 self.addEventListener('install', e => {
