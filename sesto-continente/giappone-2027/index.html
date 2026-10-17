@@ -1,0 +1,1424 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Giappone 2027</title>
+<meta name="theme-color" content="#eef4f9">
+<meta name="color-scheme" content="light">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Giappone">
+<meta name="robots" content="noindex">
+<link rel="apple-touch-icon" sizes="180x180" href="icona-180.png?v=3">
+<link rel="icon" type="image/png" sizes="192x192" href="icona-192.png?v=3">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="stylesheet" href="vendor/leaflet/leaflet.css">
+<script src="vendor/leaflet/leaflet.js" defer></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@600;700;800&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+  /* Stile Odoo, versione grande e ariosa: sempre chiaro, testi leggibili,
+     poche informazioni per schermata, dettagli in una scheda a parte. */
+  :root{
+    color-scheme:light;
+    --bg:#eef4f9; --surface:#ffffff; --surface-2:#f4f8fc; --sunken:#e7eef6;
+    --line:#e4ebf3; --line-2:#eef2f7; --ink:#132133; --muted:#4f5f75; --faint:#8494a8;
+    --teal:#0f8f9a; --teal-2:#0c6f79; --teal-soft:#dcf1f3;
+    --c-blue:#2f77d6; --c-orange:#e07a1a; --c-purple:#7c3aed; --c-red:#dc2626; --c-green:#2e9e5b; --c-cyan:#0891b2; --c-amber:#d69412;
+    --sans:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+    --disp:"Archivo",var(--sans); --mono:"IBM Plex Mono",ui-monospace,Consolas,monospace;
+    --shadow:0 1px 2px rgba(19,33,51,.04),0 8px 24px rgba(19,33,51,.06);
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{margin:0;padding:0}
+  body{background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:17px;line-height:1.45;-webkit-font-smoothing:antialiased;
+    -webkit-text-size-adjust:100%;padding-bottom:calc(62px + env(safe-area-inset-bottom))}
+  button,input,select,textarea{font:inherit;color:inherit}
+  button{cursor:pointer;border:0;background:none;padding:0;text-align:inherit;transition:transform .12s ease}
+  button:active{transform:scale(.98)}
+  a{color:inherit}
+  svg:not(:where(.leaflet-zoom-animated)){width:1em;height:1em;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;flex:none}
+  @keyframes su{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+  .anim>*{animation:su .3s ease both}
+  .wrap{max-width:680px;margin:0 auto;padding:0 18px}
+
+  /* barra in alto */
+  .topbar{position:sticky;top:0;z-index:20;background:rgba(238,244,249,.9);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);
+    border-bottom:1px solid var(--line);padding-top:env(safe-area-inset-top)}
+  .topbar .wrap{display:flex;align-items:center;gap:12px;height:62px}
+  /* nella scheda Map la barra in alto galleggia sopra la mappa, che arriva fino in cima */
+  .topbar.sopra-mappa{position:fixed;left:0;right:0;background:linear-gradient(rgba(238,244,249,.94),rgba(238,244,249,.72));border-bottom:0;box-shadow:0 2px 12px rgba(19,33,51,.10)}
+  .dot{width:38px;height:38px;border-radius:11px;flex:none;background:#2a2263 url(icona-180.png) center/cover;box-shadow:0 1px 3px rgba(19,33,51,.18)}
+  .brand{flex:1;min-width:0;font-family:var(--disp);font-weight:800;font-size:1.25rem;letter-spacing:-.01em}
+  .stato-sync{width:12px;height:12px;border-radius:50%;background:var(--faint);flex:none}
+  .stato-sync.ok{background:var(--c-green)} .stato-sync.err{background:var(--c-red)} .stato-sync.corso{background:var(--c-amber)}
+  .iconbtn{width:46px;height:46px;border-radius:14px;border:1px solid var(--line);background:var(--surface);display:grid;place-items:center;color:var(--muted);flex:none;font-size:1.3rem}
+
+  /* intestazioni */
+  .titolo{font-family:var(--disp);font-weight:800;font-size:1.75rem;letter-spacing:-.02em;margin:22px 0 4px;line-height:1.15}
+  .sottotitolo{color:var(--muted);margin:0 0 18px;font-size:1rem}
+  .sec{font-family:var(--disp);font-weight:700;font-size:1.2rem;margin:30px 2px 12px;display:flex;align-items:center;gap:10px}
+  .sec .agg{margin-left:auto;font-family:var(--sans);font-size:.95rem;font-weight:600;color:var(--teal-2);display:inline-flex;align-items:center;gap:6px;padding:8px 4px}
+
+  /* scheda grande in testa */
+  .hero{background:var(--surface);border:1px solid var(--line);border-radius:22px;padding:22px 20px;box-shadow:var(--shadow)}
+  .hero .grande{font-family:var(--disp);font-weight:800;font-size:2.1rem;line-height:1.1;letter-spacing:-.02em}
+  .hero .grande b{color:var(--teal)}
+  .hero .sotto{color:var(--muted);margin-top:6px;font-size:1rem}
+  .orologi{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:18px}
+  .quadrante{background:var(--bg);border:1px solid var(--line);border-radius:18px;padding:10px 10px 12px;text-align:center}
+  .q-nome{font-family:var(--disp);font-weight:800;font-size:1rem;color:var(--ink);margin-bottom:8px;display:flex;align-items:center;justify-content:center;gap:7px}
+  .q-nome::before{content:"";width:11px;height:11px;border-radius:50%;box-shadow:0 0 0 2px #fff,0 0 0 3px var(--line)}
+  .quadrante.it .q-nome::before{background:linear-gradient(90deg,#009246 33%,#fff 33% 66%,#ce2b37 66%)}
+  .quadrante.jp .q-nome::before{background:radial-gradient(circle,#bc002d 0 42%,#fff 46%)}
+  .q-schermo{background:linear-gradient(180deg,#16303d,#0f2430);border-radius:13px;padding:14px 4px 12px;
+    box-shadow:inset 0 2px 6px rgba(0,0,0,.45),0 1px 0 #fff;display:flex;justify-content:center}
+  .q-ora{white-space:nowrap;font-family:var(--disp);font-weight:800;font-size:clamp(1.8rem,10.4vw,2.6rem);line-height:1;letter-spacing:.01em;font-variant-numeric:tabular-nums;
+    color:#8ff5ea;text-shadow:0 0 10px rgba(80,230,215,.55)}
+  .q-ora b{font-weight:800}
+  .q-punti{font-style:normal;display:inline-block;margin:0 1px;position:relative;top:-.06em}
+  .quadrante.dest .q-ora{color:#ffc9a3;text-shadow:0 0 10px rgba(255,150,100,.5)}
+  .q-giorno{margin-top:8px;color:var(--muted);font-size:.92rem;text-transform:capitalize}
+  .tappe{display:flex;gap:6px;margin-top:18px}
+  .tappe div{flex:1 1 0;min-width:0;border-radius:10px;padding:8px 9px;background:color-mix(in srgb,var(--c) 13%,var(--surface))}
+  .tappe b{display:block;font-size:.88rem;color:color-mix(in srgb,var(--c) 75%,var(--ink));white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .tappe span{font-size:.78rem;color:var(--muted);white-space:nowrap}
+
+  /* righe grandi (elenco) */
+  #nuova{position:fixed;left:12px;right:12px;bottom:calc(60px + env(safe-area-inset-bottom));z-index:60;background:var(--ink);color:#fff;border-radius:18px;
+    padding:12px 12px 12px 16px;display:flex;align-items:center;gap:12px;box-shadow:0 10px 28px rgba(0,0,0,.28)}
+  #nuova span{flex:1;line-height:1.3} #nuova small{color:#b9c6d6}
+  #nuova button{background:var(--teal);color:#fff;font-weight:700;border-radius:12px;padding:0 18px;min-height:46px}
+  .viaggio-volo{background:var(--surface);border:1px solid var(--line);border-radius:18px;margin-bottom:12px;box-shadow:var(--shadow);overflow:hidden}
+  .vv-testa{display:flex;align-items:center;gap:14px;padding:14px 16px 10px}
+  .vv-testa .ic{width:48px;height:48px;border-radius:14px;display:grid;place-items:center;flex:none;font-size:1.4rem;color:var(--c);background:color-mix(in srgb,var(--c) 14%,#fff)}
+  .viaggio-volo.ritorno .vv-testa svg{transform:scaleX(-1)}
+  .vv-testa .nome{font-weight:700;font-size:1.08rem}
+  .vv-testa .info{color:var(--muted);font-size:.95rem;margin-top:2px}
+  .tratta{display:flex;align-items:center;gap:12px;width:100%;min-height:58px;padding:8px 16px 8px 30px;border-top:1px solid var(--line-2);text-align:left;background:none}
+  .tratta .n{width:30px;height:30px;border-radius:50%;flex:none;display:grid;place-items:center;font-weight:700;font-size:.95rem;color:var(--c);border:2px solid var(--c)}
+  .tratta .testo{flex:1;display:flex;flex-direction:column;min-width:0}
+  .tratta .nome{font-weight:600}
+  .tratta .info{color:var(--muted);font-size:.92rem}
+  .tratta .vai{color:var(--faint);font-size:1.2rem}
+  .riga{display:flex;align-items:center;gap:14px;width:100%;background:var(--surface);border:1px solid var(--line);border-radius:18px;
+    padding:14px 16px;margin-bottom:10px;box-shadow:var(--shadow);text-align:left;text-decoration:none;color:inherit}
+  .riga.oggi{border:2px solid var(--teal)}
+  .ic{flex:none;display:grid;place-items:center;width:52px;height:52px;border-radius:15px;font-size:1.45rem;
+    background:color-mix(in srgb,var(--c,var(--teal)) 14%,var(--surface));color:var(--c,var(--teal))}
+  .ic.data{flex-direction:column;line-height:1}
+  .ic.data b{font-family:var(--disp);font-size:1.3rem;font-weight:800}
+  .ic.data i{font-style:normal;font-size:.7rem;font-weight:700;text-transform:uppercase;margin-top:3px}
+  .riga .testo{flex:1;min-width:0}
+  .riga .nome{font-weight:700;font-size:1.05rem;line-height:1.3}
+  .riga .info{font-size:.9rem;color:var(--muted);margin-top:2px}
+  .riga .vai{color:var(--faint);font-size:1.3rem}
+  .riga.fatto .nome{text-decoration:line-through;color:var(--faint);font-weight:600}
+
+  .badge{display:inline-block;font-size:.78rem;font-weight:700;padding:4px 10px;border-radius:999px;margin-top:6px;
+    background:color-mix(in srgb,var(--c,var(--teal)) 14%,var(--surface));color:color-mix(in srgb,var(--c,var(--teal)) 80%,var(--ink))}
+  .badge.prenotato{--c:var(--c-green)} .badge.scelto{--c:var(--c-blue)} .badge.giallo{--c:var(--c-amber)} .badge.rosso{--c:var(--c-red)}
+  .prezzo{font-family:var(--disp);font-weight:800;font-size:1.15rem;white-space:nowrap;text-align:right}
+
+  /* pulsanti */
+  .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:48px;white-space:nowrap;padding:10px 16px;border-radius:14px;font-size:1rem;font-weight:600;
+    border:1px solid var(--line);background:var(--surface);color:var(--ink);text-decoration:none}
+  .btn.primary{background:var(--teal);border-color:var(--teal);color:#fff}
+  .btn.maps{background:var(--teal-soft);border-color:transparent;color:var(--teal-2)}
+  .btn.danger{color:var(--c-red)}
+  .btn.full{width:100%}
+  .btn svg{font-size:1.2rem}
+  .bottoni{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:14px}
+  .bottoni .full2{grid-column:1/-1}
+  .cuore{display:inline-flex;align-items:center;justify-content:center;gap:6px;min-width:52px;height:48px;padding:0 12px;border-radius:14px;
+    border:1px solid var(--line);background:var(--surface);color:var(--faint);font-weight:700;font-size:1rem;flex:none}
+  .cuore svg{font-size:1.35rem}
+  .cuore.on{color:var(--c-red);border-color:color-mix(in srgb,var(--c-red) 30%,var(--line));background:color-mix(in srgb,var(--c-red) 8%,var(--surface))}
+  .cuore.on svg{fill:currentColor}
+  .altre{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;padding:14px;border-radius:16px;border:1.5px dashed #c9d6e3;
+    color:var(--teal-2);font-weight:600;font-size:.98rem;margin-bottom:10px}
+
+  /* filtri */
+  .chips{display:flex;gap:8px;overflow-x:auto;padding:2px 2px 6px;scrollbar-width:none}
+  .chips::-webkit-scrollbar{display:none}
+  .chips button{flex:none;font-size:.98rem;font-weight:600;padding:10px 16px;border-radius:999px;background:var(--surface);border:1px solid var(--line);color:var(--muted);
+    display:inline-flex;align-items:center;gap:6px}
+  .chips button.on{background:var(--teal);border-color:var(--teal);color:#fff}
+
+  /* da fare */
+  .spunta{width:34px;height:34px;flex:none;border-radius:10px;border:2px solid #c9d6e3;background:var(--surface);display:grid;place-items:center;color:#fff;font-size:1.1rem}
+  .spunta.on{background:var(--c-green);border-color:var(--c-green)}
+  .scad{font-size:.88rem;color:var(--muted);margin-top:3px} .scad.rossa{color:var(--c-red);font-weight:600}
+  .barra{height:10px;border-radius:99px;background:var(--sunken);overflow:hidden}
+  .barra i{display:block;height:100%;background:var(--teal);border-radius:99px}
+  .barra i.oltre{background:var(--c-red)}
+  .num{font-variant-numeric:tabular-nums}
+  .vuoto{text-align:center;color:var(--faint);padding:24px 10px}
+  .nota-pie{font-size:.88rem;color:var(--muted);line-height:1.5;margin:10px 2px 0}
+
+  /* menu in basso */
+  .tabbar{position:fixed;left:0;right:0;bottom:0;z-index:30;background:rgba(255,255,255,.96);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);
+    border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom)}
+  .tabbar .wrap{display:flex;padding:0 4px}
+  .tabbar button{flex:1;display:flex;flex-direction:row;align-items:center;justify-content:center;gap:7px;height:48px;padding:0;font-size:.92rem;font-weight:600;color:var(--faint);text-align:center}
+  .tabbar button svg{font-size:1.3rem}
+  .tabbar button.on{color:var(--teal-2)}
+  .tabbar button.on svg{stroke-width:2.3}
+
+  /* scheda di dettaglio / modulo */
+  .velo{position:fixed;inset:0;z-index:50;background:rgba(10,20,32,.4);display:flex;align-items:flex-end;justify-content:center;animation:appare .18s ease}
+  @keyframes appare{from{opacity:0}to{opacity:1}}
+  .foglio{width:100%;max-width:680px;max-height:94vh;overflow:auto;background:var(--bg);border-radius:22px 22px 0 0;
+    padding:0 18px calc(24px + env(safe-area-inset-bottom));animation:sale .25s cubic-bezier(.2,.8,.2,1)}
+  @keyframes sale{from{transform:translateY(30px)}to{transform:none}}
+  .foglio-h{position:sticky;top:0;background:var(--bg);display:flex;align-items:center;gap:12px;padding:16px 0 12px;z-index:2}
+  .foglio-h h2{font-family:var(--disp);font-weight:800;font-size:1.35rem;margin:0;flex:1;line-height:1.2}
+  .blocco{background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:16px;margin-bottom:12px}
+  .blocco p{margin:0;line-height:1.55}
+  .etichetta{font-size:.85rem;font-weight:600;color:var(--muted);margin-bottom:4px}
+  .avviso{display:flex;gap:10px;align-items:flex-start;padding:14px;border-radius:16px;margin-bottom:12px;line-height:1.5;
+    background:#fdf4e2;color:#7a5410;border:1px solid #f1dcae}
+  .avviso svg{font-size:1.3rem;margin-top:2px}
+  .stati{display:flex;border:1px solid var(--line);border-radius:14px;overflow:hidden;background:var(--surface)}
+  .stati button{flex:1;font-size:.98rem;font-weight:600;padding:13px 4px;color:var(--muted);border-left:1px solid var(--line);text-align:center}
+  .stati button:first-child{border-left:0}
+  .stati button.on{background:var(--teal);color:#fff}
+  .stati button.on.scelto{background:var(--c-blue)} .stati button.on.prenotato{background:var(--c-green)}
+  .attivita{list-style:none;margin:0;padding:0}
+  .attivita li{background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:14px 16px;margin-bottom:10px}
+  .attivita .ora{font-weight:700;color:var(--teal-2);font-size:.95rem;margin-bottom:2px}
+  .attivita .cosa{line-height:1.5}
+  .attivita .link{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+  .attivita .link .btn{min-height:42px;font-size:.95rem;padding:8px 14px}
+  textarea.nota{width:100%;min-height:90px;border:1px solid var(--line);border-radius:16px;background:var(--surface);padding:12px 14px;font-size:1rem;resize:vertical;outline:none}
+  textarea.nota:focus{border-color:var(--teal);box-shadow:0 0 0 3px var(--teal-soft)}
+
+  .campo{display:block;margin-bottom:14px}
+  .campo>span{display:block;font-size:.92rem;font-weight:600;margin:0 0 6px 2px}
+  .campo input,.campo select,.campo textarea,.voce-ed input,.voce-ed select,.voce-ed textarea{width:100%;padding:13px 14px;border:1px solid #cbd5e1;border-radius:12px;
+    background:var(--surface);font-size:17px;outline:none;-webkit-appearance:none;appearance:none}
+  .campo textarea{min-height:90px;resize:vertical}
+  .campo input:focus,.campo select:focus,.campo textarea:focus,.voce-ed input:focus,.voce-ed select:focus,.voce-ed textarea:focus{border-color:var(--teal);box-shadow:0 0 0 3px var(--teal-soft)}
+  .due{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .voce-ed{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:12px;margin-bottom:10px}
+  .voce-ed .riga-ed{display:flex;gap:8px;align-items:center}
+  .voce-ed textarea{min-height:70px;margin-top:8px;resize:vertical}
+  .voce-ed select,.voce-ed .link{margin-top:8px}
+  .mini{width:46px;height:46px;flex:none;border-radius:12px;border:1px solid var(--line);background:var(--surface);display:grid;place-items:center;color:var(--muted);font-size:1.15rem}
+  .esito{font-size:.95rem;font-weight:600;margin:10px 2px;line-height:1.45;color:var(--teal-2)}
+
+  /* accesso */
+  .accesso{min-height:100vh;display:flex;flex-direction:column;justify-content:center;padding:24px 18px}
+  .accesso .scheda{background:var(--surface);border:1px solid var(--line);border-radius:24px;box-shadow:var(--shadow);padding:26px 20px}
+  .accesso .dot{display:block;width:84px;height:84px;border-radius:22px;margin-bottom:18px}
+  .accesso input{text-align:center;letter-spacing:.12em;text-transform:uppercase;font-size:20px}
+
+
+
+  /* mappa a tutto schermo nella scheda Luoghi */
+  #mappa-box{position:fixed;left:0;right:0;top:0;bottom:calc(49px + env(safe-area-inset-bottom));z-index:15;background:#e9eef3;--chiuso:150px}
+  #mappa .leaflet-bottom{bottom:calc(var(--chiuso) - 8px)}
+  #mappa{position:absolute;inset:0}
+  #mappa-filtri{position:absolute;top:calc(70px + env(safe-area-inset-top));left:10px;right:10px;z-index:500;padding:0}
+  #mappa-filtri button{box-shadow:0 2px 10px rgba(19,33,51,.18);border-color:transparent}
+  #mappa-piu{position:absolute;right:14px;bottom:calc(var(--chiuso) + 6px);z-index:500;width:60px;height:60px;border-radius:20px;background:var(--teal);color:#fff;
+    display:grid;place-items:center;font-size:1.7rem;box-shadow:0 6px 18px rgba(15,143,154,.45)}
+  #mappa-aiuto{position:absolute;left:10px;right:10px;bottom:calc(var(--chiuso) + 6px);z-index:600;background:var(--ink);color:#fff;border-radius:16px;padding:12px 14px;
+    display:flex;align-items:center;gap:10px;font-weight:600;box-shadow:0 6px 18px rgba(0,0,0,.3)}
+  #mappa-aiuto[hidden],#mappa-piu[hidden]{display:none}
+  #mappa-aiuto span{flex:1} #mappa-aiuto button{color:#7fe3ea;font-weight:700;padding:8px}
+  main.con-mappa{padding:0;min-height:0}
+  /* elenco dei luoghi: pannello sopra la mappa, chiuso in basso, trascinato su arriva a metà schermo */
+  .cassetto{position:fixed;left:0;right:0;bottom:calc(49px + env(safe-area-inset-bottom));z-index:20;height:150px;background:var(--bg);
+    border-radius:22px 22px 0 0;box-shadow:0 -6px 22px rgba(19,33,51,.16);display:flex;flex-direction:column;transition:height .28s cubic-bezier(.2,.8,.2,1);touch-action:none}
+  .cassetto.aperto{height:56vh}
+  .maniglia{display:block;width:100%;padding:10px 0 4px;background:none;border:0}
+  .maniglia::before{content:"";display:block;width:46px;height:5px;border-radius:3px;background:#c3cfdc;margin:0 auto}
+  .c-testa{padding:0 16px;touch-action:none}
+  .c-titolo{display:flex;align-items:center;justify-content:space-between;gap:10px;min-height:44px}
+  .c-titolo button.t{font-family:var(--disp);font-weight:800;font-size:1.3rem;color:var(--ink);background:none;border:0;padding:0;display:flex;align-items:center;gap:8px}
+  .c-titolo button.t small{font-family:var(--sans);font-weight:500;font-size:.95rem;color:var(--muted)}
+  .c-lista{flex:1;overflow-y:auto;padding:4px 16px 16px;touch-action:pan-y;-webkit-overflow-scrolling:touch}
+  .cassetto:not(.aperto) .c-lista{visibility:hidden}
+  .leaflet-container{font-family:var(--sans);background:#e9eef3}
+  .leaflet-control-attribution{font-size:10px}
+  /* badge sulla mappa */
+  .segno{width:0!important;height:0!important;background:none;border:0}
+  .segno-in{position:absolute;left:0;bottom:0;transform:translate(-50%,-10px);display:flex;align-items:center;gap:6px;white-space:nowrap;
+    background:var(--c);color:#fff;font-weight:700;font-size:13px;line-height:1;padding:7px 10px 7px 8px;border-radius:999px;border:2.5px solid #fff;
+    box-shadow:0 4px 12px rgba(19,33,51,.35);cursor:pointer}
+  .segno-in::after{content:'';position:absolute;left:50%;bottom:-9px;width:12px;height:12px;background:var(--c);border-right:2.5px solid #fff;border-bottom:2.5px solid #fff;
+    transform:translateX(-50%) rotate(45deg);border-radius:0 0 3px 0}
+  .segno-in svg{font-size:17px;stroke-width:2.2}
+  .segno-in.compatto{padding:9px;gap:0}
+  .segno-in.compatto svg{font-size:19px}
+  .segno-in i{font-style:normal;font-size:11px;font-weight:700;background:#fff;color:var(--c);border-radius:999px;padding:3px 7px;margin-left:2px}
+  .segno.luogo .segno-in{background:#fff;color:var(--ink);border-color:var(--c)}
+  .segno.luogo .segno-in::after{background:#fff;border-color:var(--c)}
+  .segno.luogo .segno-in svg{color:var(--c)}
+
+
+  /* animazione d'apertura: il tramonto dell'icona prende vita (circa 3,3 s, si salta con un tocco) */
+  #alba{position:fixed;inset:0;z-index:100;background:#070a24;cursor:pointer;animation:a-via .6s ease 2.9s forwards}
+  #alba svg{width:100%;height:100%;display:block;stroke:none}
+  #alba svg.a-ramo-svg{position:absolute;top:calc(env(safe-area-inset-top) - 6px);left:0;width:62vw;max-width:340px;height:auto;overflow:visible}
+  #alba .a-tramonto{opacity:0;animation:a-appare 1.8s ease-in-out .1s forwards}
+  #alba .a-stelle circle{animation:a-brilla 1.6s ease-in-out infinite alternate}
+  #alba .a-stelle{animation:a-stelle 2.4s ease forwards}
+  #alba .a-sole{transform:translateY(190px);animation:a-sorge 2.2s cubic-bezier(.2,.7,.25,1) .15s forwards}
+  #alba .a-alone{opacity:0;animation:a-appare 1.4s ease 1s forwards}
+  #alba .a-nuvole{opacity:0;animation:a-nuvole 2.4s ease .8s forwards}
+  #alba .a-ramo{transform-box:fill-box;transform-origin:0 0;animation:a-ondeggia 2.6s ease-in-out infinite alternate}
+  #alba .a-petalo{opacity:0;transform:translate(var(--x),-40px) scale(var(--s));animation:a-cade var(--t) linear var(--d) forwards}
+  #alba .a-titolo{position:absolute;left:0;right:0;top:24%;text-align:center;color:#fff;opacity:0;transform:translateY(12px);
+    animation:a-titolo .9s ease 1.3s forwards;text-shadow:0 2px 18px rgba(20,10,60,.45)}
+  #alba .a-titolo b{display:block;font-family:var(--disp);font-weight:800;font-size:2.4rem;letter-spacing:-.01em}
+  #alba .a-titolo span{display:block;margin-top:6px;font-size:1rem;font-weight:500;opacity:.9}
+  @keyframes a-appare{to{opacity:1}}
+  @keyframes a-brilla{from{opacity:.25}to{opacity:1}}
+  @keyframes a-stelle{0%{opacity:1}100%{opacity:.45}}
+  @keyframes a-sorge{to{transform:translateY(0)}}
+  @keyframes a-nuvole{0%{opacity:0;transform:translateX(-30px)}100%{opacity:1;transform:none}}
+  @keyframes a-ondeggia{from{transform:rotate(-1.2deg)}to{transform:rotate(1.4deg)}}
+  @keyframes a-cade{0%{opacity:0;transform:translate(var(--x),-40px) rotate(0) scale(var(--s))}
+    10%{opacity:.95}100%{opacity:.85;transform:translate(calc(var(--x) + var(--g)),1000px) rotate(540deg) scale(var(--s))}}
+  @keyframes a-titolo{to{opacity:1;transform:none}}
+  @keyframes a-via{to{opacity:0;visibility:hidden}}
+  @media (prefers-reduced-motion:reduce){ #alba{display:none} }
+</style>
+</head>
+<body>
+<!-- Animazione d'apertura: il tramonto dell'icona prende vita. Si salta con un tocco. -->
+<div id="alba" aria-hidden="true">
+  <svg viewBox="0 0 512 1110" preserveAspectRatio="xMidYMax slice">
+    <defs>
+    <linearGradient id="a-cielo" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#1f2461"/>
+      <stop offset=".34" stop-color="#5a2f86"/>
+      <stop offset=".58" stop-color="#d1477a"/>
+      <stop offset=".78" stop-color="#ff8f5e"/>
+      <stop offset="1" stop-color="#ffd59a"/>
+    </linearGradient>
+    <radialGradient id="a-alone" cx=".5" cy=".5" r=".5">
+      <stop offset="0" stop-color="#fff3c4" stop-opacity=".95"/>
+      <stop offset=".45" stop-color="#ffb36b" stop-opacity=".45"/>
+      <stop offset="1" stop-color="#ff7a59" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="a-sole" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#fff6c9"/>
+      <stop offset="1" stop-color="#ffb259"/>
+    </linearGradient>
+    <linearGradient id="a-monte" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#4b3f9e"/>
+      <stop offset=".5" stop-color="#3a2f80"/>
+      <stop offset="1" stop-color="#2a2263"/>
+    </linearGradient>
+    <linearGradient id="a-neve" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#ffffff"/>
+      <stop offset=".55" stop-color="#f3e9ff"/>
+      <stop offset="1" stop-color="#c9b8f0"/>
+    </linearGradient>
+    <linearGradient id="a-colle" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#1c3f5c"/>
+      <stop offset="1" stop-color="#0d2236"/>
+    </linearGradient>
+    <linearGradient id="a-colle2" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#123049"/>
+      <stop offset="1" stop-color="#081726"/>
+    </linearGradient>
+    <clipPath id="a-disco"><circle cx="256" cy="268" r="92"/></clipPath>
+    <g id="a-fiore">
+      <g fill="#ffc6d9">
+        <ellipse cx="0" cy="-9" rx="6.5" ry="9"/>
+        <ellipse cx="0" cy="-9" rx="6.5" ry="9" transform="rotate(72)"/>
+        <ellipse cx="0" cy="-9" rx="6.5" ry="9" transform="rotate(144)"/>
+        <ellipse cx="0" cy="-9" rx="6.5" ry="9" transform="rotate(216)"/>
+        <ellipse cx="0" cy="-9" rx="6.5" ry="9" transform="rotate(288)"/>
+      </g>
+      <circle r="4.2" fill="#ff7aa5"/>
+      <circle r="1.8" fill="#ffe08a"/>
+    </g>
+    <path id="a-petalo" d="M0 -7 C5 -5 6 3 0 7 C-6 3 -5 -5 0 -7 Z" fill="#ffd3e2"/>
+    <path id="a-scintilla" d="M0 -10 L2 -2 L10 0 L2 2 L0 10 L-2 2 L-10 0 L-2 -2 Z" fill="#fff"/>
+  
+      <linearGradient id="a-notte" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0" stop-color="#070a24"/><stop offset=".55" stop-color="#151a4a"/><stop offset="1" stop-color="#2a2a63"/>
+      </linearGradient>
+      <linearGradient id="a-tramonto" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0" stop-color="#151a4f"/><stop offset=".35" stop-color="#2a2a6e"/><stop offset=".55" stop-color="#5a2f86"/>
+        <stop offset=".72" stop-color="#d1477a"/><stop offset=".86" stop-color="#ff8f5e"/><stop offset="1" stop-color="#ffd59a"/>
+      </linearGradient>
+    </defs>
+    <rect width="512" height="1110" fill="url(#a-notte)"/>
+    <rect class="a-tramonto" width="512" height="1110" fill="url(#a-tramonto)"/>
+    <g class="a-stelle" fill="#fff"><circle cx="175" cy="164" r="1.8" style="animation-delay:0.98s"/><circle cx="47" cy="558" r="1" style="animation-delay:0.55s"/><circle cx="39" cy="529" r="1.2" style="animation-delay:0.06s"/><circle cx="232" cy="438" r="1" style="animation-delay:0.36s"/><circle cx="292" cy="444" r="1" style="animation-delay:1.24s"/><circle cx="73" cy="238" r="2.2" style="animation-delay:1.42s"/><circle cx="305" cy="416" r="1" style="animation-delay:1.46s"/><circle cx="33" cy="146" r="1.5" style="animation-delay:0.63s"/><circle cx="286" cy="130" r="2.2" style="animation-delay:0.46s"/><circle cx="427" cy="195" r="1" style="animation-delay:0.87s"/><circle cx="337" cy="202" r="1.5" style="animation-delay:0.15s"/><circle cx="374" cy="74" r="2.2" style="animation-delay:0.09s"/><circle cx="115" cy="518" r="2.2" style="animation-delay:0.64s"/><circle cx="170" cy="486" r="2.2" style="animation-delay:1.39s"/><circle cx="195" cy="316" r="1.2" style="animation-delay:1.19s"/><circle cx="367" cy="259" r="1" style="animation-delay:0.86s"/><circle cx="278" cy="516" r="1.5" style="animation-delay:1.09s"/><circle cx="157" cy="84" r="1" style="animation-delay:0.77s"/><circle cx="94" cy="360" r="1.2" style="animation-delay:1.40s"/><circle cx="225" cy="50" r="1" style="animation-delay:1.15s"/><circle cx="303" cy="331" r="1.5" style="animation-delay:1.04s"/><circle cx="314" cy="518" r="2.2" style="animation-delay:1.20s"/><circle cx="45" cy="105" r="1.5" style="animation-delay:0.71s"/><circle cx="350" cy="76" r="1" style="animation-delay:1.10s"/><circle cx="168" cy="466" r="1.5" style="animation-delay:1.07s"/><circle cx="464" cy="365" r="1" style="animation-delay:1.41s"/><circle cx="191" cy="182" r="2.2" style="animation-delay:0.18s"/><circle cx="40" cy="233" r="1.5" style="animation-delay:0.19s"/><circle cx="136" cy="417" r="1.8" style="animation-delay:1.38s"/><circle cx="264" cy="92" r="1.2" style="animation-delay:0.67s"/><circle cx="291" cy="294" r="1.2" style="animation-delay:1.23s"/><circle cx="452" cy="295" r="1.8" style="animation-delay:1.48s"/><circle cx="359" cy="399" r="1.2" style="animation-delay:0.23s"/><circle cx="100" cy="164" r="1.2" style="animation-delay:0.99s"/><circle cx="16" cy="506" r="2.2" style="animation-delay:0.27s"/><circle cx="154" cy="14" r="1.2" style="animation-delay:0.63s"/><circle cx="199" cy="336" r="1.2" style="animation-delay:1.04s"/><circle cx="273" cy="65" r="1.8" style="animation-delay:1.35s"/><circle cx="409" cy="411" r="1.8" style="animation-delay:0.60s"/><circle cx="63" cy="503" r="1.8" style="animation-delay:0.09s"/><circle cx="44" cy="223" r="1.8" style="animation-delay:0.24s"/><circle cx="184" cy="63" r="1" style="animation-delay:0.00s"/></g>
+    <g transform="translate(0 520)">
+      <g class="a-sole">  <!-- sole con alone e fasce di luce -->
+  <circle class="a-alone" cx="256" cy="268" r="170" fill="url(#a-alone)"/>
+  <g clip-path="url(#a-disco)">
+    <rect x="150" y="170" width="212" height="200" fill="url(#a-sole)"/>
+    <g fill="#ff9a62" opacity=".55">
+      <rect x="150" y="300" width="212" height="5"/>
+      <rect x="150" y="315" width="212" height="7"/>
+      <rect x="150" y="332" width="212" height="9"/>
+      <rect x="150" y="351" width="212" height="12"/>
+    </g>
+  </g>
+</g>
+      <g class="a-nuvole">  <!-- nuvole sottili -->
+  <g fill="#ffd0b0" opacity=".55">
+    <rect x="40" y="214" width="150" height="7" rx="3.5"/>
+    <rect x="70" y="228" width="96" height="5" rx="2.5"/>
+    <rect x="330" y="198" width="140" height="7" rx="3.5"/>
+    <rect x="360" y="212" width="80" height="5" rx="2.5"/>
+  </g>
+
+</g>
+        <!-- Fuji -->
+  <path d="M-10 412 L196 250 Q256 206 316 250 L522 412 Z" fill="url(#a-monte)"/>
+  <path d="M196 250 Q256 206 316 250 L300 262 L284 252 L270 268 L256 254 L240 270 L226 254 L212 264 Z" fill="url(#a-neve)"/>
+  <path d="M256 222 L246 300 L258 262 Z" fill="#ffffff" opacity=".18"/>
+
+  <!-- colline -->
+  <path d="M-10 420 Q90 360 200 400 T420 380 T522 392 L522 522 L-10 522 Z" fill="url(#a-colle)"/>
+  <path d="M-10 460 Q110 420 230 452 T522 436 L522 522 L-10 522 Z" fill="url(#a-colle2)"/>
+
+  <!-- torii -->
+  <g transform="translate(336 352) scale(.92)">
+    <rect x="-6" y="0" width="12" height="96" fill="#e03b35"/>
+    <rect x="58" y="0" width="12" height="96" fill="#e03b35"/>
+    <rect x="-8" y="88" width="16" height="10" fill="#2a1418"/>
+    <rect x="56" y="88" width="16" height="10" fill="#2a1418"/>
+    <rect x="-12" y="22" width="88" height="9" fill="#e03b35"/>
+    <rect x="28" y="14" width="8" height="10" fill="#e03b35"/>
+    <path d="M-26 -6 Q32 4 90 -6 L86 6 Q32 14 -22 6 Z" fill="#2a1418"/>
+    <path d="M-20 4 Q32 12 84 4 L82 12 Q32 19 -18 12 Z" fill="#e03b35"/>
+  </g>
+
+
+    </g>
+    <rect x="0" y="1030" width="512" height="80" fill="#081726"/>
+    <g class="a-petali"><use href="#a-petalo" class="a-petalo" style="--x:97px;--d:0.95s;--t:3.34s;--s:1.07;--g:-51px"/><use href="#a-petalo" class="a-petalo" style="--x:467px;--d:0.49s;--t:2.65s;--s:1.08;--g:-16px"/><use href="#a-petalo" class="a-petalo" style="--x:328px;--d:0.71s;--t:2.35s;--s:1.21;--g:-1px"/><use href="#a-petalo" class="a-petalo" style="--x:265px;--d:0.88s;--t:2.30s;--s:0.76;--g:-17px"/><use href="#a-petalo" class="a-petalo" style="--x:399px;--d:0.57s;--t:3.19s;--s:0.80;--g:-58px"/><use href="#a-petalo" class="a-petalo" style="--x:125px;--d:1.53s;--t:2.83s;--s:0.79;--g:9px"/><use href="#a-petalo" class="a-petalo" style="--x:488px;--d:0.24s;--t:2.83s;--s:1.29;--g:50px"/><use href="#a-petalo" class="a-petalo" style="--x:66px;--d:1.17s;--t:2.51s;--s:0.92;--g:-39px"/><use href="#a-petalo" class="a-petalo" style="--x:202px;--d:1.28s;--t:2.84s;--s:1.17;--g:-18px"/><use href="#a-petalo" class="a-petalo" style="--x:345px;--d:0.51s;--t:3.17s;--s:1.29;--g:49px"/><use href="#a-petalo" class="a-petalo" style="--x:119px;--d:1.33s;--t:3.18s;--s:1.14;--g:-31px"/><use href="#a-petalo" class="a-petalo" style="--x:122px;--d:0.92s;--t:2.63s;--s:0.72;--g:-57px"/><use href="#a-petalo" class="a-petalo" style="--x:424px;--d:0.59s;--t:2.51s;--s:1.12;--g:-16px"/><use href="#a-petalo" class="a-petalo" style="--x:248px;--d:1.33s;--t:3.07s;--s:0.91;--g:-14px"/><use href="#a-petalo" class="a-petalo" style="--x:61px;--d:0.51s;--t:2.47s;--s:0.82;--g:-34px"/><use href="#a-petalo" class="a-petalo" style="--x:267px;--d:1.07s;--t:3.28s;--s:1.20;--g:1px"/></g>
+  </svg>
+  <svg class="a-ramo-svg" viewBox="-12 46 214 128"><g class="a-ramo">  <!-- ramo di ciliegio -->
+  <path d="M-10 70 C40 80 80 96 118 128 C140 146 160 150 186 148" stroke="#3a1f2b" stroke-width="9" fill="none" stroke-linecap="round"/>
+  <path d="M60 86 C70 110 66 132 52 150" stroke="#3a1f2b" stroke-width="5" fill="none" stroke-linecap="round"/>
+  <path d="M118 128 C126 104 142 92 160 86" stroke="#3a1f2b" stroke-width="4.5" fill="none" stroke-linecap="round"/>
+  <use href="#a-fiore" transform="translate(30 74) scale(1.15) rotate(10)"/>
+  <use href="#a-fiore" transform="translate(76 96) scale(1.25) rotate(-12)"/>
+  <use href="#a-fiore" transform="translate(54 150) scale(1)"/>
+  <use href="#a-fiore" transform="translate(112 124) scale(1.2) rotate(25)"/>
+  <use href="#a-fiore" transform="translate(162 86) scale(1.05) rotate(-20)"/>
+  <use href="#a-fiore" transform="translate(186 148) scale(1.15) rotate(5)"/>
+  <use href="#a-fiore" transform="translate(140 152) scale(.85) rotate(40)"/>
+  <use href="#a-fiore" transform="translate(10 112) scale(.9) rotate(-30)"/>
+
+</g></svg>
+
+  <div class="a-titolo"><b>Giappone 2027</b><span>Osaka · Kyoto · Hakone · Tokyo</span></div>
+</div>
+<div id="app"></div>
+<div id="mappa-box" hidden>
+  <div id="mappa"></div>
+  <div id="mappa-filtri" class="chips"></div>
+  <div id="mappa-aiuto" hidden><span id="mappa-aiuto-t">Tocca sulla mappa il punto del nuovo luogo</span><button data-a="annullaPunto">Annulla</button></div>
+  <button id="mappa-piu" data-a="nuovoPunto" aria-label="Aggiungi un luogo"></button>
+</div>
+
+<!-- Marchio dell'agenzia e identità dell'app: pubblici, scritti dal generatore Itinera. -->
+<script id="marchio" type="application/json">{"app":{"id":"sesto-continente--giappone-2027","nome":"Giappone 2027"},"agenzia":{"nome":"Il Sesto Continente","colore":"#1d6fa5","telefono":"030 2650478","email":"info@ilsestocontinente.com","sito":"https://www.ilsestocontinente.com","indirizzo":"Via Kennedy 40, Torbole Casaglia (BS)","orari":"Lun–sab 9–12, lun–ven anche 15–19"}}</script>
+<!-- Dati del viaggio cifrati (AES-GCM): si leggono solo con il codice del cliente. Scritti dal generatore. -->
+<script id="seme" type="application/json">{"v":1,"it":310000,"salt":"UnVNkHKbOB+WXLmufAupcA==","iv":"RNOwCUa08AWI7cTB","ct":"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"}</script>
+
+<script>
+'use strict';
+/* ====================================================================
+   Itinera — app di viaggio del cliente, generata per ogni viaggio
+   dal generatore Itinera (generatore/genera.mjs) a partire da questo modello.
+   Pagina unica, nessuna dipendenza. I dati del viaggio sono cifrati nel
+   file (blocco "seme") e nel cloud (Supabase, stessa tabella di CHO):
+   senza il codice del viaggio nessuno li può leggere.
+   ==================================================================== */
+const VERSIONE = '3.0.202610171156';  // scritta dal generatore: cambia a ogni nuova generazione e fa comparire l'avviso Aggiorna
+const MARCHIO = (() => { try{ return JSON.parse(document.getElementById('marchio').textContent); }catch(e){ return { app:{ id:'itinera', nome:'Il tuo viaggio' }, agenzia:{} }; } })();
+const APP_ID = MARCHIO.app.id;  // più app possono stare sullo stesso dominio: tutte le chiavi locali portano il suo id
+const AGENZIA = MARCHIO.agenzia || {};
+// il colore dell'agenzia diventa l'accento dell'app (pulsanti, conto alla rovescia, selezioni)
+if(/^#[0-9a-f]{6}$/i.test(AGENZIA.colore || '')){
+  const r = document.documentElement.style;
+  r.setProperty('--teal', AGENZIA.colore);
+  r.setProperty('--teal-2', `color-mix(in srgb, ${AGENZIA.colore} 78%, #000)`);
+  r.setProperty('--teal-soft', `color-mix(in srgb, ${AGENZIA.colore} 15%, #fff)`);
+}
+const CFG_KEY = APP_ID + '-config', DATI_KEY = APP_ID + '-dati', SEME_KEY = APP_ID + '-seme';
+const COLL = ['viaggiatori','tappe','giorni','alloggi','voli','luoghi','todo','budget','spese','info'];
+const SEME = (() => { try{ return JSON.parse(document.getElementById('seme').textContent); }catch(e){ return {}; } })();
+
+function leggiJSON(k){ try{ return JSON.parse(localStorage.getItem(k)); }catch(e){ return null; } }
+function scriviJSON(k, v){ try{ localStorage.setItem(k, JSON.stringify(v)); return true; }catch(e){ return false; } }
+let cfg = leggiJSON(CFG_KEY) || {};
+let D = leggiJSON(DATI_KEY);
+let S = { animProssimo:true, altre:{}, sel:null, tab:'programma', aperto:null, sheet:null, citta:'tutte', cat:'tutti', soloPref:false,
+  sync:{ stato:'', ora:null, errore:'' }, erroreBlocco:'', attesa:false, esitoImp:'' };
+function salvaCfg(){ scriviJSON(CFG_KEY, cfg); }
+function salvaLocale(){ if(!scriviJSON(DATI_KEY, D)) alert('Memoria del telefono piena: non riesco a salvare.'); }
+
+/* ---------- utilità ---------- */
+const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const linkOk = u => /^https?:\/\//i.test(String(u || '').trim()) ? String(u).trim() : '';
+const maps = q => 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(q);
+const uid = p => p + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+const vis = k => ((D && D[k]) || []).filter(x => !x.del);
+const trova = (k, id) => vis(k).find(x => x.id === id);
+const oggiISO = () => { const d = new Date(); return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 10); };
+const giorniTra = (a, b) => Math.round((Date.parse(b) - Date.parse(a)) / 864e5);
+const fmtD = (iso, o) => iso ? new Date(iso + 'T12:00:00').toLocaleDateString('it-IT', o || { day:'numeric', month:'long' }) : '';
+const eur = n => '€ ' + Math.round(n).toLocaleString('it-IT');
+const yen = n => '¥ ' + Math.round(n).toLocaleString('it-IT');
+const cambio = () => Number(D.viaggio && D.viaggio.cambio) || 177;
+const inEuro = s => s.valuta === 'JPY' ? Number(s.importo || 0) / cambio() : Number(s.importo || 0);
+const io = () => cfg.io || '';
+const nomeDi = id => { const p = trova('viaggiatori', id); return p ? p.nome : ''; };
+const tappa = id => trova('tappe', id) || { citta:'', colore:'#888' };
+const tappeNotte = () => vis('tappe').filter(t => !t.solo).sort((a, b) => a.dal.localeCompare(b.dal));
+
+/* ---------- cifratura (stessa ricetta di CHO: PBKDF2 + AES-GCM) ---------- */
+function _b64(buf){ const b = new Uint8Array(buf); let s = ''; for(let i = 0; i < b.length; i += 0x8000) s += String.fromCharCode.apply(null, b.subarray(i, i + 0x8000)); return btoa(s); }
+function _unb64(s){ return Uint8Array.from(atob(s), c => c.charCodeAt(0)); }
+async function sha256hex(t){ const b = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(t)); return [...new Uint8Array(b)].map(x => x.toString(16).padStart(2, '0')).join(''); }
+const normCodice = c => String(c || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
+async function chiave(codice, salt, it){
+  const base = await crypto.subtle.importKey('raw', new TextEncoder().encode(normCodice(codice)), 'PBKDF2', false, ['deriveKey']);
+  return crypto.subtle.deriveKey({ name:'PBKDF2', salt, iterations:it, hash:'SHA-256' }, base, { name:'AES-GCM', length:256 }, false, ['encrypt','decrypt']);
+}
+async function cifra(testo, codice, it){
+  const salt = crypto.getRandomValues(new Uint8Array(16)), iv = crypto.getRandomValues(new Uint8Array(12));
+  const ct = await crypto.subtle.encrypt({ name:'AES-GCM', iv }, await chiave(codice, salt, it), new TextEncoder().encode(testo));
+  return { v:1, it, salt:_b64(salt), iv:_b64(iv), ct:_b64(ct) };
+}
+async function decifra(o, codice){
+  const pt = await crypto.subtle.decrypt({ name:'AES-GCM', iv:_unb64(o.iv) }, await chiave(codice, _unb64(o.salt), o.it || 100000), _unb64(o.ct));
+  return new TextDecoder().decode(pt);
+}
+
+/* ---------- unione dei dati: per ogni elemento vince la modifica più recente ---------- */
+function unisci(a, b){
+  if(!a) return JSON.parse(JSON.stringify(b));
+  if(!b) return a;
+  const r = { viaggio: ((b.viaggio && b.viaggio.agg) || 0) > ((a.viaggio && a.viaggio.agg) || 0) ? b.viaggio : a.viaggio };
+  for(const k of COLL){
+    const m = new Map();
+    for(const x of (a[k] || [])) m.set(x.id, x);
+    for(const x of (b[k] || [])){ const y = m.get(x.id); if(!y || (x.agg || 0) > (y.agg || 0)) m.set(x.id, x); }
+    r[k] = [...m.values()];
+  }
+  return r;
+}
+function firma(x){
+  if(!x) return '';
+  return ((x.viaggio && x.viaggio.agg) || 0) + '|' + COLL.map(k => (x[k] || []).map(r => r.id + ':' + (r.agg || 0)).sort().join(',')).join('|');
+}
+function salva(k, rec){
+  rec.agg = Date.now(); rec.da = io();
+  if(k === 'viaggio'){ D.viaggio = rec; }
+  else{ const arr = D[k] || (D[k] = []); const i = arr.findIndex(x => x.id === rec.id); if(i >= 0) arr[i] = rec; else arr.push(rec); }
+  salvaLocale(); pianificaSync();
+}
+function elimina(k, id){ const r = (D[k] || []).find(x => x.id === id); if(r){ salva(k, { id:r.id, del:true }); } }
+
+/* ---------- seme cifrato contenuto nella pagina ---------- */
+async function applicaSeme(codice){
+  if(!SEME.ct) throw new Error('nessun dato nella pagina');
+  const h = await sha256hex(SEME.ct + '|' + normCodice(codice));
+  if(D && localStorage.getItem(SEME_KEY) === h) return;
+  const seme = JSON.parse(await decifra(SEME, codice));
+  D = unisci(D, seme); salvaLocale();
+  try{ localStorage.setItem(SEME_KEY, h); }catch(e){}
+}
+
+/* ---------- sincronizzazione con Supabase ---------- */
+let syncTimer = null, inSync = false, ancoraSync = false;
+function pianificaSync(){ clearTimeout(syncTimer); syncTimer = setTimeout(syncOra, 1500); aggiornaPill(); }
+function syncAttiva(){ return !!(cfg.url && cfg.key && cfg.codice); }
+async function syncOra(manuale){
+  if(!syncAttiva()){ S.sync = { stato:'locale' }; aggiornaPill(); return; }
+  if(inSync){ ancoraSync = true; return; }
+  inSync = true; S.sync = { ...S.sync, stato:'corso' }; aggiornaPill();
+  const base = cfg.url.trim().replace(/\/+$/, '') + '/rest/v1/' + (cfg.tabella || 'cho_sync');
+  try{
+    const id = await sha256hex(APP_ID + '|' + normCodice(cfg.codice));
+    const h = { apikey:cfg.key, Authorization:'Bearer ' + cfg.key };
+    const r = await fetch(base + '?select=dati&codice=eq.' + id, { headers:h, cache:'no-store' });
+    if(!r.ok) throw new Error('lettura non riuscita (' + r.status + ') ' + (await r.text()).slice(0, 140));
+    const arr = await r.json();
+    let remoto = null;
+    if(arr.length){
+      try{ remoto = JSON.parse(await decifra(JSON.parse(arr[0].dati), cfg.codice)); }
+      catch(e){ throw new Error('i dati nel cloud non si aprono con questo codice'); }
+    }
+    const prima = firma(D);
+    D = unisci(D, remoto); salvaLocale();
+    if(!remoto || firma(D) !== firma(remoto)){
+      const bundle = JSON.stringify(await cifra(JSON.stringify(D), cfg.codice, 150000));
+      const p = await fetch(base, { method:'POST', headers:{ ...h, 'Content-Type':'application/json', Prefer:'resolution=merge-duplicates,return=minimal' },
+        body: JSON.stringify([{ codice:id, dati:bundle, aggiornato:new Date().toISOString() }]) });
+      if(!p.ok) throw new Error('invio non riuscito (' + p.status + ') ' + (await p.text()).slice(0, 140));
+    }
+    S.sync = { stato:'ok', ora:Date.now() };
+    if(prima !== firma(D)) renderSicuro(); else aggiornaPill();
+  }catch(e){
+    S.sync = { stato:'errore', errore:(e && e.message) || String(e) };
+    aggiornaPill();
+    if(manuale) S.esitoImp = 'Sincronizzazione non riuscita: ' + S.sync.errore;
+  }finally{
+    inSync = false;
+    if(ancoraSync){ ancoraSync = false; setTimeout(syncOra, 400); }
+    if(manuale && S.sheet && S.sheet.tipo === 'impostazioni') render();
+  }
+}
+function aggiornaPill(){ const el = document.getElementById('pill'); if(el) el.innerHTML = pillHTML(); }
+function renderSicuro(){
+  const a = document.activeElement;
+  if(a && /INPUT|TEXTAREA|SELECT/.test(a.tagName)){ aggiornaPill(); S.renderInSospeso = true; return; }
+  render();
+}
+
+/* ---------- invito: #c=CODICE&u=URL&k=CHIAVE&t=TABELLA ---------- */
+function leggiInvito(){
+  if(!location.hash || location.hash.length < 4) return;
+  const p = new URLSearchParams(location.hash.slice(1));
+  if(p.get('c')){
+    cfg.codice = normCodice(p.get('c'));
+    if(p.get('u')) cfg.url = p.get('u');
+    if(p.get('k')) cfg.key = p.get('k');
+    if(p.get('t')) cfg.tabella = p.get('t');
+    salvaCfg();
+  }
+  history.replaceState(null, '', location.pathname + location.search);
+}
+function linkInvito(){
+  const p = new URLSearchParams({ c:cfg.codice });
+  if(cfg.url && cfg.key){ p.set('u', cfg.url); p.set('k', cfg.key); if(cfg.tabella && cfg.tabella !== 'cho_sync') p.set('t', cfg.tabella); }
+  return location.origin + location.pathname + '#' + p.toString();
+}
+
+/* =========================== VISTE =========================== */
+/* Icone a linea, stesso tratto delle app O&M. */
+const ICO = {
+  casa:'<path d="M3 11l9-8 9 8"/><path d="M5 10v10h5v-6h4v6h5V10"/>',
+  cal:'<rect x="3" y="4" width="18" height="17" rx="2.5"/><path d="M3 9h18M8 2v4M16 2v4"/>',
+  pin:'<path d="M12 21s-7-6-7-11a7 7 0 0 1 14 0c0 5-7 11-7 11z"/><circle cx="12" cy="10" r="2.5"/>',
+  aereo:'<path d="M17.8 19.2 16 11l3.5-3.5C21 6 21.5 4 21 3c-1-.5-3 0-4.5 1.5L13 8 4.8 6.2c-.5-.1-.9.1-1.1.5l-.3.5c-.2.5-.1 1 .3 1.3L9 12l-2 3H4l-1 1 3 2 2 3 1-1v-3l3-2 3.5 5.3c.3.4.8.5 1.3.3l.5-.2c.4-.3.6-.7.5-1.2z"/>',
+  check:'<rect x="4" y="4" width="16" height="16" rx="3"/><path d="M8 12l3 3 5-6"/>',
+  ok:'<path d="M20 6L9 17l-5-5"/>',
+  wallet:'<path d="M19 7V5a2 2 0 0 0-2-2H5a2 2 0 0 0 0 4h14v4M3 5v14a2 2 0 0 0 2 2h16v-5"/><path d="M18 12a2 2 0 0 0 0 4h4v-4z"/>',
+  gear:'<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>',
+  link:'<path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>',
+  edit:'<path d="M14 7l3 3M3 21l4-1 11-11-3-3L4 17z"/>',
+  cuore:'<path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1-1.1a5.5 5.5 0 0 0-7.8 7.8l1 1.1L12 21l7.8-7.6 1-1.1a5.5 5.5 0 0 0 0-7.7z"/>',
+  torii:'<path d="M3 6c6 1.5 12 1.5 18 0M5 10h14M7 7v14M17 7v14"/>',
+  ciotola:'<path d="M3 11h18a9 9 0 0 1-18 0z"/><path d="M8 7c0-2 2-2 2-4M13 7c0-2 2-2 2-4"/>',
+  borsa:'<path d="M6 7h12l1 14H5z"/><path d="M9 7a3 3 0 0 1 6 0"/>',
+  tazza:'<path d="M4 9h13v5a5 5 0 0 1-5 5H9a5 5 0 0 1-5-5z"/><path d="M17 11h1.5a2.5 2.5 0 0 1 0 5H17M8 3v3M12 3v3"/>',
+  albero:'<path d="M12 3l6 8h-3l4 6H5l4-6H6z"/><path d="M12 17v4"/>',
+  stella:'<path d="M12 3l2.8 5.7 6.2.9-4.5 4.4 1 6.2L12 17.3 6.5 20.2l1-6.2L3 9.6l6.2-.9z"/>',
+  letto:'<path d="M3 18V7M3 13h18v5M21 13a3 3 0 0 0-3-3h-7v3"/><circle cx="7" cy="11.5" r="1.5"/>',
+  allerta:'<path d="M12 3l9 16H3z"/><path d="M12 10v4M12 17h.01"/>',
+  mappa:'<path d="M9 4L3 6v14l6-2 6 2 6-2V4l-6 2z"/><path d="M9 4v14M15 6v14"/>',
+  invia:'<path d="M22 2L11 13M22 2l-7 20-4-9-9-4z"/>',
+  giu:'<path d="M12 4v12M7 11l5 5 5-5M5 20h14"/>',
+  su:'<path d="M12 20V8M7 13l5-5 5 5M5 4h14"/>',
+  piu:'<path d="M12 5v14M5 12h14"/>',
+  chev:'<path d="M6 9l6 6 6-6"/>',
+  'chev-r':'<path d="M9 6l6 6-6 6"/>',
+  x:'<path d="M6 6l12 12M18 6L6 18"/>',
+  freccia:'<path d="M12 19V5M5 12l7-7 7 7"/>',
+  sync:'<path d="M21 12a9 9 0 0 1-15.5 6.2M3 12A9 9 0 0 1 18.5 5.8"/><path d="M21 4v5h-5M3 20v-5h5"/>',
+  nuvola:'<path d="M7 18a5 5 0 1 1 1-9.9A6 6 0 0 1 19 10a4 4 0 0 1-1 8z"/>',
+  persone:'<circle cx="9" cy="8" r="3"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6"/><circle cx="17" cy="9" r="2.5"/><path d="M15.5 14.2c3 .2 5.5 2.6 5.5 5.8"/>',
+  info:'<circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5h.01"/>',
+  occhio:'<path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/>',
+  telefono:'<path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2z"/>',
+  treno:'<rect x="5" y="3" width="14" height="14" rx="3"/><path d="M5 11h14M9 21l-2 0M15 21h2M8 17l-2 4M16 17l2 4"/><path d="M9 14h.01M15 14h.01"/>'
+};
+const ic = (n, cls) => `<svg viewBox="0 0 24 24"${cls ? ` class="${cls}"` : ''}>${ICO[n] || ''}</svg>`;
+
+const TABS = [
+  ['programma','casa','Home'], ['luoghi','pin','Map'], ['viaggio','aereo','Voli e hotel']
+];
+const sezione = (titolo, azione) => `<div class="sec">${titolo}${azione || ''}</div>`;
+const piu = (a, k, t) => `<button class="agg" data-a="${a}"${k ? ` data-k="${k}"` : ''}>${ic('piu')}${t}</button>`;
+const ext = (url, cls, contenuto) => `<a class="btn ${cls}" href="${esc(url)}" target="_blank" rel="noopener">${contenuto}</a>`;
+/* Le funzioni avanzate le dà l'app Google Maps del telefono: scheda del posto, percorso e Street View, gratis e senza chiave. */
+function azioniMaps(r, cerca){
+  const pos = conPos(r) ? r.lat + ',' + r.lon : '';
+  const dest = cerca || pos;
+  const via = 'https://www.google.com/maps/dir/?api=1&travelmode=transit&destination=' + encodeURIComponent(dest);
+  const sv = pos ? 'https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=' + pos : '';
+  return `${ext(maps(cerca || pos), 'primary full', ic('pin') + 'Apri in Google Maps')}
+    <div class="bottoni" style="margin-top:10px">${ext(via, 'maps', ic('treno') + 'Portami qui')}${sv ? ext(sv, '', ic('occhio') + 'Street View') : ''}</div>`;
+}
+
+function pillHTML(){
+  const s = S.sync;
+  const cls = !syncAttiva() ? '' : s.stato === 'errore' ? 'err' : s.stato === 'corso' ? 'corso' : s.ora ? 'ok' : 'corso';
+  const tit = !syncAttiva() ? 'Condivisione non attiva' : s.stato === 'errore' ? 'Non sincronizzato' : s.ora ? 'Sincronizzato' : 'Sincronizzo';
+  return `<span class="stato-sync ${cls}" title="${tit}"></span>`;
+}
+
+function render(){
+  S.renderInSospeso = false;
+  S.anim = S.animProssimo; S.animProssimo = false;
+  const app = document.getElementById('app');
+  if(!cfg.codice || !D){ app.innerHTML = vistaBlocco(); return; }
+  const corpo = ({ programma:vistaProgramma, luoghi:vistaLuoghi, viaggio:vistaViaggio }[S.tab] || vistaProgramma)();
+  app.innerHTML = `
+    <header class="topbar ${S.tab === 'luoghi' ? 'sopra-mappa' : ''}"><div class="wrap">
+      <span class="dot"></span><div class="brand">${esc((D.viaggio && D.viaggio.titolo) || MARCHIO.app.nome)}</div>
+      <span id="pill">${pillHTML()}</span>
+      <button class="iconbtn" data-a="impostazioni" aria-label="Impostazioni">${ic('gear')}</button>
+    </div></header>
+    <main class="wrap ${S.anim ? 'anim' : ''} ${S.tab === 'luoghi' ? 'con-mappa' : ''}">${corpo}</main>
+    <nav class="tabbar"><div class="wrap">${TABS.map(([k, i, n]) =>
+      `<button class="${S.tab === k ? 'on' : ''}" data-a="tab" data-v="${k}">${ic(i)}${n}</button>`).join('')}</div></nav>
+    ${S.sheet ? vistaFoglio() : ''}`;
+  aggiornaMappa();
+}
+/* ---------- mappa (Leaflet + OpenStreetMap/CARTO) ---------- */
+/* centri della mappa: dalle tappe del viaggio (lat, lon, zoom) e da viaggio.centro per la vista d'insieme */
+let CENTRI = { tutte:[[41.9, 12.5], 4] };
+function aggiornaCentri(){
+  const c = { tutte: (D && D.viaggio && D.viaggio.centro) || CENTRI.tutte };
+  for(const t of vis('tappe')) if(isFinite(t.lat) && isFinite(t.lon) && t.lat !== '' && t.lat != null) c[t.id] = [[+t.lat, +t.lon], +t.zoom || 12];
+  CENTRI = c;
+}
+let MAPPA = null, STRATO = null, ULTIMA_CITTA = null;
+function creaMappa(){
+  if(!window.L) return false;
+  aggiornaCentri();
+  MAPPA = L.map('mappa', { zoomControl:false, attributionControl:true, tap:true }).setView(CENTRI.tutte[0], CENTRI.tutte[1]);
+  // Sfondo chiaro Esri (gratuito, senza chiave): base grigio chiaro + nomi in inglese, senza svincoli né cartelli.
+  // Se non risponde passa alla mappa stradale Esri, poi a OpenStreetMap.
+  const ESRI = n => `https://server.arcgisonline.com/ArcGIS/rest/services/${n}/MapServer/tile/{z}/{y}/{x}`;
+  const base = L.tileLayer(ESRI('Canvas/World_Light_Gray_Base'), { maxZoom:19, maxNativeZoom:16, attribution:'&copy; Esri, OpenStreetMap' }).addTo(MAPPA);
+  const nomi = L.tileLayer(ESRI('Canvas/World_Light_Gray_Reference'), { maxZoom:19, maxNativeZoom:16, pane:'overlayPane' }).addTo(MAPPA);
+  let errori = 0;
+  const ripiego = () => {
+    if(++errori < 4 || !MAPPA.hasLayer(base)) return;
+    MAPPA.removeLayer(base); MAPPA.removeLayer(nomi);
+    const strade = L.tileLayer(ESRI('World_Street_Map'), { maxZoom:19, maxNativeZoom:18, attribution:'&copy; Esri, OpenStreetMap' }).addTo(MAPPA);
+    let e2 = 0, ok = 0;
+    strade.on('tileload', () => ok++);
+    strade.on('tileerror', () => { if(++e2 < 4 || ok > 0 || !MAPPA.hasLayer(strade)) return;
+      MAPPA.removeLayer(strade);
+      L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom:19, attribution:'&copy; OpenStreetMap' }).addTo(MAPPA); });
+  };
+  base.on('tileerror', ripiego); nomi.on('tileerror', ripiego);
+  L.control.zoom({ position:'bottomleft' }).addTo(MAPPA);
+  STRATO = L.layerGroup().addTo(MAPPA);
+  MAPPA.on('zoomend', disegnaSegni);
+  MAPPA.on('click', e => {
+    if(!S.puntoNuovo) return;
+    S.puntoNuovo = false;
+    const lat = +e.latlng.lat.toFixed(6), lon = +e.latlng.lng.toFixed(6);
+    if(S.sposta){
+      const r = trova('luoghi', S.sposta); S.sposta = null;
+      if(r){ salva('luoghi', { ...r, lat, lon, tappa: tappaVicina(lat, lon) }); S.sheet = { tipo:'dett', k:'luoghi', id:r.id }; }
+    }else S.sheet = { k:'luoghi', base:{ lat, lon, tappa:tappaVicina(lat, lon), cat:CAT[S.cat] ? S.cat : 'vedere' } };
+    render();
+  });
+  return true;
+}
+function tappaVicina(lat, lon){
+  let best = (vis('tappe')[0] || {}).id || '', d = 1e9;
+  for(const [k, [[a, b]]] of Object.entries(CENTRI)){ if(k === 'tutte') continue; const x = (a - lat) ** 2 + (b - lon) ** 2; if(x < d){ d = x; best = k; } }
+  return best;
+}
+const breve = n => n.length > 20 ? n.slice(0, 18).trim() + '…' : n;
+function segno(rec, tipo, compatto){
+  const t = tappa(rec.tappa);
+  let col = t.colore || '#0f8f9a', icona = 'letto', extra = '';
+  if(tipo === 'alloggi'){
+    if(rec.stato === 'prenotato'){ col = '#2e9e5b'; extra = '<i>prenotato</i>'; }
+    else if(rec.stato === 'scelto'){ col = '#2f77d6'; extra = '<i>scelto</i>'; }
+  }else{ const c = CAT[rec.cat] || CAT.altro; icona = c[0]; col = getComputedStyle(document.documentElement).getPropertyValue(c[2].slice(4, -1)).trim() || col; }
+  const m = L.marker([rec.lat, rec.lon], { icon:L.divIcon({ className:'segno' + (tipo === 'luoghi' ? ' luogo' : ''),
+    html:compatto ? `<div class="segno-in compatto" style="--c:${esc(col)}">${ic(icona)}</div>`
+      : `<div class="segno-in" style="--c:${esc(col)}">${ic(icona)}<span>${esc(breve(rec.nome))}</span>${extra}</div>`, iconSize:[0, 0], iconAnchor:[0, 0] }),
+    riseOnHover:true, zIndexOffset:tipo === 'alloggi' ? 500 : 0 });
+  m.on('click', () => { S.sheet = { tipo:'dett', k:tipo, id:rec.id }; render(); });
+  return m;
+}
+const conPos = r => r.lat !== '' && r.lat != null && isFinite(r.lat) && isFinite(r.lon);
+/* da lontano un badge per città; a metà zoom segnaposto compatti; da vicino badge con il nome */
+function disegnaSegni(){
+  const hotel = vediHotelSuMappa() ? hotelScelti().filter(conPos) : [], luoghi = vis('luoghi').filter(l => conPos(l) && vediLuoghiSuMappa(l));
+  if(!STRATO) return { hotel, luoghi };
+  STRATO.clearLayers();
+  const z = MAPPA.getZoom();
+  if(z < 10){
+    for(const t of tappeNotte()){
+      const h = hotel.filter(r => r.tappa === t.id), l = luoghi.filter(r => r.tappa === t.id);
+      if(!h.length && !l.length) continue;
+      const tutti = [...h, ...l], lat = tutti.reduce((a, r) => a + r.lat, 0) / tutti.length, lon = tutti.reduce((a, r) => a + r.lon, 0) / tutti.length;
+      const testo = [h.length && h.length + ' hotel', l.length && l.length + (l.length === 1 ? ' luogo' : ' luoghi')].filter(Boolean).join(' · ');
+      const m = L.marker([lat, lon], { icon:L.divIcon({ className:'segno', iconSize:[0, 0], iconAnchor:[0, 0],
+        html:`<div class="segno-in" style="--c:${esc(t.colore)}">${ic('pin')}<span>${esc(t.citta)}</span><i>${testo}</i></div>` }) });
+      m.on('click', () => { S.citta = t.id; render(); });
+      STRATO.addLayer(m);
+    }
+  }else{
+    const compatto = z < 14;
+    hotel.forEach(h => STRATO.addLayer(segno(h, 'alloggi', compatto)));
+    luoghi.forEach(l => STRATO.addLayer(segno(l, 'luoghi', compatto)));
+  }
+  return { hotel, luoghi };
+}
+function aggiornaMappa(){
+  const box = document.getElementById('mappa-box');
+  if(!box) return;
+  const mostra = !!(cfg.codice && D && S.tab === 'luoghi');
+  box.hidden = !mostra;
+  if(!mostra) return;
+  if(!MAPPA && !creaMappa()){ setTimeout(aggiornaMappa, 300); return; }
+  MAPPA.invalidateSize();
+  // filtri per città
+  const citta = ['tutte', ...tappeNotte().map(t => t.id)];
+  document.getElementById('mappa-filtri').innerHTML = citta.map(c =>
+    `<button class="${S.citta === c ? 'on' : ''}" data-a="citta" data-v="${c}">${c === 'tutte' ? esc(D.viaggio.filtroTutto || 'Tutto il viaggio') : esc(tappa(c).citta)}</button>`).join('');
+  document.getElementById('mappa-piu').innerHTML = ic('piu');
+  document.getElementById('mappa-aiuto').hidden = !S.puntoNuovo;
+  document.getElementById('mappa-aiuto-t').textContent = S.sposta ? 'Tocca sulla mappa la nuova posizione' : 'Tocca sulla mappa il punto del nuovo luogo';
+  document.getElementById('mappa-piu').hidden = !!S.puntoNuovo;
+  const { hotel, luoghi } = disegnaSegni();
+  aggiornaCentri();
+  if(ULTIMA_CITTA !== S.citta){
+    ULTIMA_CITTA = S.citta;
+    const punti = [...hotel, ...luoghi].filter(r => S.citta === 'tutte' || r.tappa === S.citta).map(r => [r.lat, r.lon]);
+    if(S.citta !== 'tutte' && punti.length > 1) MAPPA.flyToBounds(L.latLngBounds(punti).pad(.25), { duration:.8, maxZoom:16 });
+    else{ const [c, z] = CENTRI[S.citta] || CENTRI.tutte; MAPPA.flyTo(c, z, { duration:.8 }); }
+  }
+}
+
+function vistaBlocco(){
+  return `<div class="accesso wrap"><div class="scheda">
+    <span class="dot"></span>
+    <div class="titolo" style="margin-top:0">${esc(MARCHIO.app.nome)}</div>
+    <p class="sottotitolo">Scrivi il codice del viaggio che ti hanno mandato.</p>
+    <label class="campo"><input id="codice-in" autocomplete="off" autocapitalize="characters" placeholder="XXXX-XXXX-XXXX-XXXX" value="${esc(cfg.codice || '')}"></label>
+    <button class="btn primary full" data-a="sblocca">${S.attesa ? 'Apro…' : 'Entra'}</button>
+    ${S.erroreBlocco ? `<p class="esito" style="color:var(--c-red)">${esc(S.erroreBlocco)}</p>` : ''}
+  </div></div>`;
+}
+
+/* ---------- utilità di vista ---------- */
+function alloggioDiTappa(tid){
+  const opz = vis('alloggi').filter(h => h.tappa === tid);
+  return opz.find(h => h.stato === 'prenotato') || opz.find(h => h.stato === 'scelto') || null;
+}
+function tappaDellaNotte(data){ return tappeNotte().find(t => t.dal <= data && data < t.al); }
+const CAT = { vedere:['torii','Da vedere','var(--c-blue)'], mangiare:['ciotola','Ristorante','var(--c-orange)'],
+  caffe:['tazza','Caffè e dolci','var(--c-red)'], natura:['albero','Parchi e natura','var(--c-green)'],
+  shopping:['borsa','Shopping','var(--c-purple)'], altro:['stella','Altro','var(--c-amber)'] };
+function haCuore(rec){ return !!(io() && rec.pref && rec.pref[io()]); }
+function quantiCuori(rec){ return Object.keys(rec.pref || {}).filter(p => rec.pref[p] && trova('viaggiatori', p)); }
+function bottoneCuore(k, rec){
+  const n = quantiCuori(rec).length;
+  return `<button class="cuore ${haCuore(rec) ? 'on' : ''}" data-a="pref" data-k="${k}" data-id="${rec.id}" aria-label="Preferito">${ic('cuore')}${n || ''}</button>`;
+}
+
+/* ---------- orologi casa / destinazione: due display digitali affiancati ---------- */
+/* casa e destinazione: la destinazione viene dai dati (viaggio.paese, viaggio.fuso, viaggio.bandiera) */
+const FUSI_CASA = ['it', 'Italia', 'Europe/Rome'];
+const fusi = () => { const v = (D && D.viaggio) || {}; return v.fuso && v.fuso !== FUSI_CASA[2] ? [FUSI_CASA, ['dest ' + (v.bandiera || ''), v.paese || 'Destinazione', v.fuso]] : [FUSI_CASA]; };
+function oraIn(tz){
+  const d = new Date(), p = {};
+  for(const x of new Intl.DateTimeFormat('it-IT', { hour:'2-digit', minute:'2-digit', second:'2-digit', hourCycle:'h23', timeZone:tz }).formatToParts(d)) p[x.type] = x.value;
+  return { h:p.hour, m:p.minute, s:p.second,
+    giorno: d.toLocaleDateString('it-IT', { weekday:'long', day:'numeric', month:'short', timeZone:tz }) };
+}
+function orologiHTML(){
+  return `<div class="orologi">${fusi().map(([k, nome, tz]) => { const o = oraIn(tz);
+    return `<div class="quadrante ${k}"><div class="q-nome">${nome}</div>
+      <div class="q-schermo"><span class="q-ora"><b id="oh-${k.split(' ')[0]}">${o.h}</b><i class="q-punti">:</i><b id="om-${k.split(' ')[0]}">${o.m}</b></span></div>
+      <div class="q-giorno" id="giorno-${k.split(' ')[0]}">${o.giorno}</div></div>`; }).join('')}</div>`;
+}
+function aggiornaOrologi(){
+  for(const [k, , tz] of fusi()){
+    const id = k.split(' ')[0], h = document.getElementById('oh-' + id);
+    if(!h) return;
+    const o = oraIn(tz);
+    h.textContent = o.h; document.getElementById('om-' + id).textContent = o.m;
+    document.getElementById('giorno-' + id).textContent = o.giorno;
+  }
+}
+setInterval(aggiornaOrologi, 5000);
+
+/* ---------- programma ---------- */
+function vistaProgramma(){
+  const v = D.viaggio || {}, oggi = oggiISO();
+  const giorni = vis('giorni').sort((a, b) => a.data.localeCompare(b.data));
+  const prima = oggi < v.partenza, dopo = oggi > v.ritorno;
+  let grande, sotto;
+  if(prima){ const n = giorniTra(oggi, v.partenza); grande = `Mancano <b>${n}</b> ${n === 1 ? 'giorno' : 'giorni'}`;
+    sotto = `Si parte ${fmtD(v.partenza, { weekday:'long', day:'numeric', month:'long' })}`; }
+  else if(!dopo){ const i = giorni.findIndex(g => g.data === oggi); grande = `Giorno <b>${i + 1}</b> di ${giorni.length}`;
+    sotto = fmtD(oggi, { weekday:'long', day:'numeric', month:'long' }); }
+  else{ grande = 'Bentornati!'; sotto = `${giorni.length} giorni di viaggio`; }
+  const tappe = tappeNotte().map(t => { const n = giorniTra(t.dal, t.al);
+    return `<div style="--n:${n};--c:${esc(t.colore)}"><b>${esc(t.citta)}</b><span>${n} ${n === 1 ? 'notte' : 'notti'}</span></div>`; }).join('');
+  const gOggi = giorni.find(g => g.data === oggi);
+  return `<div class="titolo">Il viaggio</div>
+    <div class="hero"><div class="grande">${grande}</div><div class="sotto">${sotto}</div>${orologiHTML()}<div class="tappe">${tappe}</div></div>
+    ${gOggi ? sezione('Oggi') + rigaGiorno(gOggi, giorni.indexOf(gOggi), oggi) : ''}
+    ${sezione('Giorno per giorno', piu('nuovoGiorno', '', 'Aggiungi'))}
+    ${giorni.map((g, i) => rigaGiorno(g, i, oggi)).join('')}
+    ${schedaAgenzia()}
+    <p class="nota-pie" style="text-align:center;margin-top:18px">Versione ${VERSIONE}${AGENZIA.nome ? ' · realizzata con Itinera' : ''}</p>`;
+}
+/* la tua agenzia: sempre a portata di tocco, durante e dopo il viaggio */
+function schedaAgenzia(){
+  const a = AGENZIA; if(!a.nome) return '';
+  const tel = String(a.telefono || '').replace(/[^+\d]/g, '');
+  return `${sezione('La tua agenzia')}
+    <div class="blocco" style="--c:var(--teal)">
+      <p style="font-weight:700;font-size:1.1rem">${esc(a.nome)}</p>
+      ${a.indirizzo ? `<p style="color:var(--muted);margin-top:4px">${esc(a.indirizzo)}</p>` : ''}
+      ${a.orari ? `<p style="color:var(--muted);margin-top:4px">${esc(a.orari)}</p>` : ''}
+      <div class="bottoni">
+        ${tel ? `<a class="btn maps" href="tel:${esc(tel)}">${ic('telefono')}Chiama</a>` : ''}
+        ${a.email ? `<a class="btn" href="mailto:${esc(a.email)}">${ic('invia')}Scrivi</a>` : ''}
+        ${linkOk(a.sito) ? `<a class="btn full2" href="${esc(a.sito)}" target="_blank" rel="noopener">${ic('link')}Sito dell'agenzia</a>` : ''}
+      </div>
+    </div>`;
+}
+function rigaGiorno(g, i, oggi){
+  const t = tappa(g.tappa), dd = new Date(g.data + 'T12:00:00');
+  return `<button class="riga ${g.data === oggi ? 'oggi' : ''}" style="--c:${esc(t.colore)}" data-a="apriGiorno" data-id="${g.id}">
+    <div class="ic data"><b>${dd.getDate()}</b><i>${dd.toLocaleDateString('it-IT', { weekday:'short' })}</i></div>
+    <div class="testo"><div class="nome">${esc(g.titolo)}</div><div class="info">${esc(t.citta)}</div></div>
+    <span class="vai">${ic('chev-r')}</span></button>`;
+}
+
+/* ---------- luoghi ---------- */
+/* filtro per tipo: tutti, hotel (solo scelti o prenotati) o una categoria di CAT */
+const vediHotelSuMappa = () => S.cat === 'tutti' || S.cat === 'hotel';
+const vediLuoghiSuMappa = l => S.cat === 'tutti' || S.cat === l.cat;
+function vistaLuoghi(){
+  const inCitta = r => S.citta === 'tutte' || r.tappa === S.citta;
+  const ordine = (a, b) => (tappa(a.tappa).dal || '').localeCompare(tappa(b.tappa).dal || '') || a.nome.localeCompare(b.nome);
+  const H = vediHotelSuMappa() ? hotelScelti().filter(inCitta).sort(ordine) : [];
+  const L = vis('luoghi').filter(l => inCitta(l) && vediLuoghiSuMappa(l)).sort(ordine);
+  const tipi = [['tutti', 'Tutti'], ['hotel', 'Hotel'], ...Object.entries(CAT).map(([k, v]) => [k, v[1]])];
+  const n = H.length + L.length;
+  return `<div class="cassetto ${S.cassetto ? 'aperto' : ''}">
+    <button class="maniglia" data-a="cassetto" aria-label="${S.cassetto ? 'Chiudi' : 'Apri'} l'elenco"></button>
+    <div class="c-testa">
+      <div class="c-titolo"><button class="t" data-a="cassetto">I nostri luoghi <small>${n}</small></button>${piu('nuovoPunto', '', 'Aggiungi')}</div>
+      <div class="chips" style="margin:2px -2px 4px">${tipi.map(([k, t]) => `<button class="${S.cat === k ? 'on' : ''}" data-a="tipo" data-v="${k}">${t}</button>`).join('')}</div>
+    </div>
+    <div class="c-lista">
+    ${H.map(h => `<button class="riga" style="--c:${h.stato === 'prenotato' ? 'var(--c-green)' : 'var(--c-blue)'}" data-a="vediLuogo" data-k="alloggi" data-id="${h.id}">
+        <div class="ic">${ic('letto')}</div>
+        <div class="testo"><div class="nome">${esc(h.nome)}</div><div class="info">${esc(tappa(h.tappa).citta || '')} · Hotel ${h.stato === 'prenotato' ? 'prenotato' : 'scelto'}</div></div>
+        <span class="vai">${ic('chev-r')}</span></button>`).join('')}
+    ${L.map(l => { const c = CAT[l.cat] || CAT.altro, chi = quantiCuori(l);
+      return `<button class="riga" style="--c:${c[2]}" data-a="vediLuogo" data-k="luoghi" data-id="${l.id}">
+        <div class="ic">${ic(c[0])}</div>
+        <div class="testo"><div class="nome">${esc(l.nome)}</div><div class="info">${esc(tappa(l.tappa).citta || '')} · ${c[1]}${conPos(l) ? '' : ' · senza posizione'}</div></div>
+        ${chi.length ? `<span class="vai" style="color:var(--c-red)">${ic('cuore')}</span>` : `<span class="vai">${ic('chev-r')}</span>`}</button>`; }).join('')}
+    ${n ? '' : `<div class="vuoto">Nessun luogo qui. Tocca + e poi il punto sulla mappa.</div>`}
+    </div></div>`;
+}
+
+/* ---------- voli e hotel ---------- */
+/* Si mostrano solo gli hotel scelti o prenotati (o aggiunti dall'app, senza stato): le alternative restano nei dati come 'proposta' ma non si vedono.
+   Lo stato non si cambia dall'app: si aggiorna nel blocco cifrato. */
+const hotelScelti = () => vis('alloggi').filter(h => h.stato !== 'proposta');
+function vistaViaggio(){
+  const voli = vis('voli').sort((a, b) => (a.data || '').localeCompare(b.data || ''));
+  const hotel = tappeNotte().map(t => {
+    const n = giorniTra(t.dal, t.al), scelti = hotelScelti().filter(h => h.tappa === t.id).sort((a, b) => a.nome.localeCompare(b.nome));
+    return sezione(`${esc(t.citta)} <span style="font-family:var(--sans);font-weight:500;font-size:.92rem;color:var(--muted)">${fmtD(t.dal, { day:'numeric', month:'short' })} → ${fmtD(t.al, { day:'numeric', month:'short' })} · ${n} ${n === 1 ? 'notte' : 'notti'}</span>`) +
+      (scelti.map(rigaAlloggio).join('') || '<div class="vuoto">Hotel non ancora scelto.</div>');
+  }).join('');
+  return `<div class="titolo">Voli e hotel</div><p class="sottotitolo">Tocca un hotel per aprire il suo sito. La freccia a destra apre i dettagli.</p>
+    ${sezione('Voli', piu('nuovo', 'voli', 'Aggiungi'))}
+    ${gruppiVoli(voli) || '<div class="vuoto">Nessun volo inserito.</div>'}
+    ${sezione('Hotel', piu('nuovo', 'alloggi', 'Aggiungi'))}
+    ${hotel}
+    ${sezione('Info utili', piu('nuovo', 'info', 'Aggiungi'))}
+    ${vis('info').map(x => `<button class="riga" style="--c:var(--c-cyan)" data-a="dett" data-k="info" data-id="${x.id}">
+      <div class="ic">${ic('info')}</div><div class="testo"><div class="nome">${esc(x.titolo)}</div></div><span class="vai">${ic('chev-r')}</span></button>`).join('')}`;
+}
+/* andata e ritorno sono viaggi con più tratte: ogni tratta è un volo a sé (campo tratta: 1, 2, …) */
+const ordineTratte = (a, b) => (+a.tratta || 1) - (+b.tratta || 1) || (a.partenza || a.data || '').localeCompare(b.partenza || b.data || '');
+const corto = s => String(s || '').replace(/\s*\([A-Z]{3}\)\s*$/, '');
+function gruppiVoli(voli){
+  const html = [];
+  for(const [tipo, nome, col] of [['andata', 'Andata', 'var(--c-blue)'], ['ritorno', 'Ritorno', 'var(--c-purple)']]){
+    const tr = voli.filter(v => v.tipo === tipo).sort(ordineTratte);
+    if(!tr.length) continue;
+    const primo = tr[0], ultimo = tr[tr.length - 1], scali = tr.slice(1).map(v => corto(v.origine));
+    html.push(`<div class="viaggio-volo ${tipo}" style="--c:${col}">
+      <div class="vv-testa"><div class="ic">${ic('aereo')}</div>
+        <div class="testo"><div class="nome">${nome} · ${fmtD(primo.data, { day:'numeric', month:'long' })}</div>
+          <div class="info">${esc(corto(primo.origine))} → ${esc(corto(ultimo.destinazione))}${scali.length ? ' · scalo a ' + esc(scali.join(', ')) : ''}</div></div></div>
+      ${tr.map((v, i) => rigaTratta(v, i + 1)).join('')}</div>`);
+  }
+  return html.join('') + voli.filter(v => v.tipo !== 'andata' && v.tipo !== 'ritorno').map(rigaVolo).join('');
+}
+function rigaTratta(v, n){
+  const ora = s => s ? s.slice(11, 16) : '';
+  const quando = [v.numero, ora(v.partenza) && 'parte ' + ora(v.partenza), ora(v.arrivo) && 'arriva ' + ora(v.arrivo)].filter(Boolean).join(' · ');
+  return `<button class="tratta" data-a="dett" data-k="voli" data-id="${v.id}">
+    <span class="n">${n}</span>
+    <span class="testo"><span class="nome">${esc(corto(v.origine))} → ${esc(corto(v.destinazione))}</span><span class="info">${esc(quando || fmtD(v.data, { day:'numeric', month:'long' }))}</span></span>
+    <span class="vai">${ic('chev-r')}</span></button>`;
+}
+function rigaVolo(v){
+  const ora = s => s ? s.slice(11, 16) : '';
+  return `<button class="riga" style="--c:var(--c-blue)" data-a="dett" data-k="voli" data-id="${v.id}">
+    <div class="ic">${ic('aereo')}</div>
+    <div class="testo"><div class="nome">Volo · ${fmtD(v.data, { day:'numeric', month:'long' })}</div>
+      <div class="info">${esc(v.origine)} → ${esc(v.destinazione)}${ora(v.partenza) ? ' · ' + ora(v.partenza) : ''}</div>
+      </div>
+    <span class="vai">${ic('chev-r')}</span></button>`;
+}
+function rigaAlloggio(h){
+  const att = /^attenzione/i.test(h.note || ''), u = linkOk(h.link) || maps(h.indirizzo || h.nome + ' ' + tappa(h.tappa).citta);
+  return `<div class="riga" style="--c:${h.stato === 'prenotato' ? 'var(--c-green)' : h.stato === 'scelto' ? 'var(--c-blue)' : 'var(--teal)'}">
+    <a class="ic" href="${esc(u)}" target="_blank" rel="noopener" aria-label="Sito dell'hotel">${ic('letto')}</a>
+    <a class="testo" href="${esc(u)}" target="_blank" rel="noopener" style="text-decoration:none;color:inherit"><div class="nome">${esc(h.nome)}</div>
+      <div class="info">${linkOk(h.link) ? 'Apri il sito' : 'Apri la mappa'}</div>
+      ${h.stato === 'prenotato' ? '<span class="badge prenotato">Prenotato</span>' : h.stato === 'scelto' ? '<span class="badge scelto">Scelto</span>' : ''}
+      ${att ? '<span class="badge giallo">Leggi l\u2019avviso</span>' : ''}</a>
+    <button class="mini" data-a="dett" data-k="alloggi" data-id="${h.id}" aria-label="Dettagli e stato">${ic('chev-r')}</button></div>`;
+}
+/* =========================== FOGLI =========================== */
+const opzTappe = (solo) => vis('tappe').filter(t => !solo || !t.solo).sort((a, b) => a.dal.localeCompare(b.dal)).map(t => [t.id, t.citta]);
+const SCHEMI = {
+  luoghi:{ titolo:'luogo', campi:[
+    { k:'nome', l:'Nome', req:1 }, { k:'tappa', l:'Città', t:'sel', o:() => opzTappe() },
+    { k:'cat', l:'Tipo', t:'sel', o:() => Object.entries(CAT).map(([k, v]) => [k, v[1]]) },
+    { k:'q', l:'Cosa cercare su Google Maps (facoltativo)', ph:'es. Ichiran Shibuya' }, { k:'lat', t:'hidden' }, { k:'lon', t:'hidden' },
+    { k:'link', l:'Sito web (facoltativo)', t:'url' }, { k:'note', l:'Note', t:'area' } ] },
+  alloggi:{ titolo:'hotel', campi:[
+    { k:'nome', l:'Nome', req:1 }, { k:'tappa', l:'Città', t:'sel', o:() => opzTappe(true) },
+    { k:'camera', l:'Camera e trattamento' },
+    { k:'rimborsabile', l:'Cancellazione gratuita fino al', t:'date' },
+    { k:'conferma', l:'Codice di prenotazione' }, { k:'indirizzo', l:'Indirizzo (per Google Maps)' },
+    { k:'link', l:'Sito web', t:'url' }, { k:'note', l:'Note', t:'area' } ] },
+  voli:{ titolo:'volo', campi:[
+    { k:'tipo', l:'Fa parte di', t:'sel', o:() => [['andata','Andata'], ['ritorno','Ritorno'], ['interno','Volo interno']] },
+    { k:'tratta', l:'Tratta', t:'sel', o:() => [['1','1ª tratta'], ['2','2ª tratta'], ['3','3ª tratta']] },
+    { k:'data', l:'Data', t:'date' }, { k:'origine', l:'Da', req:1 }, { k:'destinazione', l:'A', req:1 },
+    { k:'partenza', l:'Partenza (ora locale)', t:'dt' }, { k:'arrivo', l:'Arrivo (ora locale)', t:'dt' },
+    { k:'compagnia', l:'Compagnia aerea' }, { k:'numero', l:'Numero del volo (es. AZ 784)' }, { k:'sitoCompagnia', l:'Sito della compagnia (facoltativo)', t:'url' }, { k:'terminal', l:'Terminal' },
+    { k:'prenotazione', l:'Codice di prenotazione' }, { k:'bagaglio', l:'Bagaglio' }, { k:'note', l:'Note', t:'area' } ] },
+  todo:{ titolo:'cosa da fare', campi:[ { k:'testo', l:'Cosa', req:1, t:'area' }, { k:'entro', l:'Entro il', t:'date' } ] },
+  spese:{ titolo:'spesa', campi:[
+    { k:'descr', l:'Cosa hai pagato', req:1 }, { k:'importo', l:'Quanto', t:'num', req:1 },
+    { k:'valuta', l:'Valuta', t:'sel', o:() => [['JPY','Yen (¥)'], ['EUR','Euro (€)']] },
+    { k:'cat', l:'Categoria', t:'sel', o:() => vis('budget').map(b => [b.id, b.nome]) },
+    { k:'data', l:'Data', t:'date' }, { k:'chi', l:'Chi ha pagato', t:'sel', o:() => [['', '—']].concat(vis('viaggiatori').map(p => [p.id, p.nome])) } ] },
+  budget:{ titolo:'categoria', campi:[ { k:'nome', l:'Nome', req:1 }, { k:'previsto', l:'Previsto (€)', t:'num' } ] },
+  info:{ titolo:'informazione', campi:[ { k:'titolo', l:'Titolo', req:1 }, { k:'testo', l:'Testo', t:'area' } ] }
+};
+function campoHTML(c, val){
+  const v = esc(val == null ? '' : val), n = `name="${c.k}"`, req = c.req ? 'required' : '';
+  let input;
+  if(c.t === 'hidden') return `<input type="hidden" ${n} value="${v}">`;
+  if(c.t === 'sel') input = `<select ${n}>${c.o().map(([k, t]) => `<option value="${esc(k)}" ${String(val) === String(k) ? 'selected' : ''}>${esc(t)}</option>`).join('')}</select>`;
+  else if(c.t === 'area') input = `<textarea ${n} ${req}>${v}</textarea>`;
+  else input = `<input ${n} ${req} ${c.ph ? `placeholder="${esc(c.ph)}"` : ''} type="${{ num:'number', date:'date', dt:'datetime-local', url:'url' }[c.t] || 'text'}" ${c.t === 'num' ? 'step="any" inputmode="decimal"' : ''} value="${v}">`;
+  return `<label class="campo"><span>${esc(c.l)}</span>${input}</label>`;
+}
+const testaFoglio = t => `<div class="foglio-h"><h2>${t}</h2><button class="iconbtn" data-a="chiudi" aria-label="Chiudi">${ic('x')}</button></div>`;
+function vistaFoglio(){
+  const sh = S.sheet;
+  let dentro;
+  if(sh.tipo === 'impostazioni') dentro = foglioImpostazioni();
+  else if(sh.tipo === 'giorno') dentro = foglioGiorno();
+  else if(sh.tipo === 'giornoVista') dentro = foglioGiornoVista();
+  else if(sh.tipo === 'dett') dentro = foglioDettaglio();
+  else if(sh.tipo === 'chiSei') dentro = `${testaFoglio('Chi sei?')}<p class="sottotitolo" style="margin-top:-6px">Serve solo a far vedere agli altri i tuoi preferiti. Lo chiedo una volta.</p>` +
+    vis('viaggiatori').map(p => `<button class="btn full" style="margin-bottom:10px;font-size:1.1rem" data-a="sonoIo" data-id="${p.id}">${esc(p.nome)}</button>`).join('') +
+    `<p class="nota-pie">I nomi si cambiano dalle impostazioni.</p>`;
+  else{
+    const sc = SCHEMI[sh.k], rec = sh.id ? trova(sh.k, sh.id) || {} : (sh.base || {});
+    dentro = `${testaFoglio((sh.id ? 'Modifica ' : 'Nuovo ') + sc.titolo)}
+      ${sh.k === 'todo' && sh.id ? `<button class="btn ${rec.fatto ? '' : 'primary'} full" style="margin-bottom:14px" data-a="todo" data-id="${sh.id}">${ic('ok')}${rec.fatto ? 'Segna come da fare' : 'Segna come fatto'}</button>` : ''}
+      <form id="modulo" onsubmit="return false">${sc.campi.map(c => campoHTML(c, rec[c.k])).join('')}</form>
+      <button class="btn primary full" data-a="salvaModulo">Salva</button>
+      ${sh.id ? `<button class="btn danger full" style="margin-top:10px" data-a="eliminaModulo">Elimina</button>` : ''}`;
+  }
+  return `<div class="velo" data-a="sfondo"><div class="foglio" role="dialog">${dentro}</div></div>`;
+}
+
+/* dettaglio di un giorno */
+function foglioGiornoVista(){
+  const g = trova('giorni', S.sheet.id); if(!g) return testaFoglio('Giorno eliminato');
+  const t = tappa(g.tappa), notte = tappaDellaNotte(g.data), h = notte && alloggioDiTappa(notte.id);
+  const luoghi = (g.voci || []).map(x => x.l && trova('luoghi', x.l)).filter(Boolean);
+  const percorso = luoghi.length >= 2 ? 'https://www.google.com/maps/dir/?api=1&origin=' + encodeURIComponent(luoghi[0].q) +
+    '&destination=' + encodeURIComponent(luoghi[luoghi.length - 1].q) +
+    (luoghi.length > 2 ? '&waypoints=' + encodeURIComponent(luoghi.slice(1, -1).slice(0, 8).map(l => l.q).join('|')) : '') : '';
+  return `${testaFoglio(esc(g.titolo))}
+    <p class="sottotitolo" style="margin-top:-6px">${fmtD(g.data, { weekday:'long', day:'numeric', month:'long' })} · ${esc(t.citta)}</p>
+    ${percorso ? `<div style="margin-bottom:14px">${ext(percorso, 'primary full', ic('mappa') + 'Percorso del giorno su Google Maps')}</div>` : ''}
+    <ul class="attivita">${(g.voci || []).map(x => { const l = x.l && trova('luoghi', x.l), u = linkOk(x.u);
+      return `<li>${x.ora ? `<div class="ora">${esc(x.ora)}</div>` : ''}<div class="cosa">${esc(x.t)}</div>
+        ${l || u ? `<div class="link">${l ? ext(maps(l.q), 'maps', ic('pin') + 'Mappa') : ''}${u ? ext(u, '', ic('link') + 'Sito') : ''}</div>` : ''}</li>`; }).join('')}</ul>
+    ${h ? `<div class="blocco"><div class="etichetta">Si dorme a</div><p><b>${esc(h.nome)}</b>${h.stato === 'prenotato' ? ' · prenotato' : ''}</p></div>` : ''}
+    <div class="etichetta" style="margin:16px 2px 6px">Note per tutti</div>
+    <textarea class="nota" placeholder="Scrivi qui una nota per i compagni di viaggio…" data-ed="giorni|${g.id}|note">${esc(g.note || '')}</textarea>
+    <button class="btn full" style="margin-top:14px" data-a="modGiorno" data-id="${g.id}">${ic('edit')}Modifica questo giorno</button>`;
+}
+
+/* compagnie aeree frequenti: codice IATA → nome e sito */
+const COMPAGNIE = {
+  AZ:['ITA Airways','https://www.ita-airways.com'], JL:['Japan Airlines','https://www.jal.co.jp/en/'], NH:['ANA','https://www.ana.co.jp/en/'],
+  EK:['Emirates','https://www.emirates.com'], QR:['Qatar Airways','https://www.qatarairways.com'], TK:['Turkish Airlines','https://www.turkishairlines.com'],
+  LH:['Lufthansa','https://www.lufthansa.com'], AF:['Air France','https://www.airfrance.it'], KL:['KLM','https://www.klm.it'],
+  AY:['Finnair','https://www.finnair.com'], LX:['Swiss','https://www.swiss.com'], EY:['Etihad','https://www.etihad.com'],
+  CX:['Cathay Pacific','https://www.cathaypacific.com'], KE:['Korean Air','https://www.koreanair.com'], SQ:['Singapore Airlines','https://www.singaporeair.com'],
+  TG:['Thai Airways','https://www.thaiairways.com'], MU:['China Eastern','https://us.ceair.com'], CA:['Air China','https://www.airchina.com'],
+  BA:['British Airways','https://www.britishairways.com'], OS:['Austrian','https://www.austrian.com'], LO:['LOT','https://www.lot.com']
+};
+function compagniaDi(v){
+  if(linkOk(v.sitoCompagnia)) return [v.compagnia || 'compagnia aerea', linkOk(v.sitoCompagnia)];
+  const cod = String(v.numero || '').toUpperCase().replace(/\s+/g, '').slice(0, 2);
+  if(COMPAGNIE[cod]) return COMPAGNIE[cod];
+  const nome = String(v.compagnia || '').toLowerCase().trim();
+  if(!nome) return null;
+  return Object.values(COMPAGNIE).find(([n]) => n.toLowerCase().includes(nome) || nome.includes(n.toLowerCase())) || null;
+}
+
+/* dettaglio di luogo, hotel, volo, info */
+function foglioDettaglio(){
+  const { k, id } = S.sheet, r = trova(k, id);
+  if(!r) return testaFoglio('Elemento eliminato');
+  const modifica = `<button class="btn full" style="margin-top:12px" data-a="mod" data-k="${k}" data-id="${id}">${ic('edit')}Modifica</button>`;
+  if(k === 'luoghi'){
+    const c = CAT[r.cat] || CAT.altro, u = linkOk(r.link), chi = quantiCuori(r);
+    return `${testaFoglio(esc(r.nome))}
+      <p class="sottotitolo" style="margin-top:-6px">${esc(tappa(r.tappa).citta)} · ${c[1]}</p>
+      ${azioniMaps(r, r.nome && !/^Nuovo/.test(r.nome) ? r.nome + ' ' + tappa(r.tappa).citta : r.q)}
+      ${r.note ? `<div class="blocco" style="margin-top:12px"><p>${esc(r.note)}</p></div>` : ''}
+      <div class="bottoni">
+        <button class="btn ${haCuore(r) ? 'maps' : ''}" data-a="pref" data-k="luoghi" data-id="${id}">${ic('cuore')}${haCuore(r) ? 'Nei preferiti' : 'Preferito'}</button>
+        <button class="btn ${r.visto ? 'maps' : ''}" data-a="visto" data-id="${id}">${ic('ok')}${r.visto ? 'Già visto' : 'Fatto'}</button>
+        ${u ? `<a class="btn full2" href="${esc(u)}" target="_blank" rel="noopener">${ic('link')}Sito web</a>` : ''}
+        <button class="btn full2" data-a="spostaLuogo" data-id="${id}">${ic('pin')}${conPos(r) ? 'Sposta sulla mappa' : 'Metti sulla mappa'}</button></div>
+      ${chi.length ? `<p class="nota-pie">Piace a: ${chi.map(p => esc(nomeDi(p))).join(', ')}</p>` : ''}
+      ${modifica}`;
+  }
+  if(k === 'alloggi'){
+    const u = linkOk(r.link), att = /^attenzione/i.test(r.note || ''), chi = quantiCuori(r);
+    return `${testaFoglio(esc(r.nome))}
+      <p class="sottotitolo" style="margin-top:-6px">${esc(tappa(r.tappa).citta)} · ${esc(r.camera || '')}</p>
+      ${azioniMaps(r, r.nome + ' ' + tappa(r.tappa).citta)}
+      <div style="height:12px"></div>
+      ${att ? `<div class="avviso">${ic('allerta')}<span>${esc(r.note)}</span></div>` : ''}
+      ${r.rimborsabile || r.conferma ? `<div class="blocco">${r.rimborsabile ? `<p style="color:var(--muted)">Cancellazione gratuita fino al <b style="color:var(--ink)">${fmtD(r.rimborsabile, { day:'numeric', month:'long', year:'numeric' })}</b></p>` : ''}
+        ${r.conferma ? `<p style="margin-top:6px;color:var(--muted)">Codice di prenotazione: <b style="color:var(--ink)">${esc(r.conferma)}</b></p>` : ''}</div>` : ''}
+      ${r.note && !att ? `<div class="blocco" style="margin-top:12px"><p>${esc(r.note)}</p></div>` : ''}
+      <div class="bottoni">
+        <button class="btn ${haCuore(r) ? 'maps' : ''}" data-a="pref" data-k="alloggi" data-id="${id}">${ic('cuore')}${haCuore(r) ? 'Preferito' : 'Preferito?'}</button>
+        ${u ? `<a class="btn full2" href="${esc(u)}" target="_blank" rel="noopener">${ic('link')}Sito dell'hotel</a>` : ''}</div>
+      ${chi.length ? `<p class="nota-pie">Piace a: ${chi.map(p => esc(nomeDi(p))).join(', ')}</p>` : ''}
+      ${modifica}`;
+  }
+  if(k === 'voli'){
+    const ora = s => s ? s.slice(11, 16) : '—';
+    const righe = [['Compagnia', [r.compagnia, r.numero].filter(Boolean).join(' ')], ['Terminal', r.terminal], ['Prenotazione', r.prenotazione], ['Bagaglio', r.bagaglio], ['Note', r.note]].filter(x => x[1]);
+    const tot = vis('voli').filter(v => v.tipo === r.tipo).length;
+    return `${testaFoglio((r.tipo === 'ritorno' ? 'Ritorno' : r.tipo === 'andata' ? 'Andata' : 'Volo') + (tot > 1 && r.tipo !== 'interno' ? ' · tratta ' + (r.tratta || 1) + ' di ' + tot : ''))}
+      <p class="sottotitolo" style="margin-top:-6px">${fmtD(r.data, { weekday:'long', day:'numeric', month:'long', year:'numeric' })}</p>
+      <div class="blocco" style="display:flex;gap:12px">
+        <div style="flex:1"><div class="etichetta">Partenza</div><p><b>${esc(r.origine)}</b></p><div class="titolo num" style="margin:4px 0 0;font-size:1.5rem">${ora(r.partenza)}</div></div>
+        <div style="flex:1;text-align:right"><div class="etichetta">Arrivo</div><p><b>${esc(r.destinazione)}</b></p><div class="titolo num" style="margin:4px 0 0;font-size:1.5rem">${ora(r.arrivo)}${r.arrivo && r.partenza && r.arrivo.slice(0, 10) > r.partenza.slice(0, 10) ? '<sup style="font-size:.55em;color:var(--muted)"> +1</sup>' : ''}</div></div></div>
+      ${righe.length ? `<div class="blocco">${righe.map(([e, v]) => `<div class="etichetta" style="margin-top:8px">${e}</div><p>${esc(v)}</p>`).join('')}</div>`
+        : `<div class="blocco"><p style="color:var(--muted)">Quando avete i biglietti, tocca Modifica e aggiungi compagnia, numero del volo e orari.</p></div>`}
+      ${(() => { const c = compagniaDi(r); return c ? `<div style="margin-bottom:12px">${ext(c[1], 'primary full', ic('aereo') + 'Apri il sito di ' + esc(c[0]))}</div>` : ''; })()}
+      ${r.numero ? `<div class="etichetta" style="margin:4px 2px 8px">Stato del volo in tempo reale</div>
+        <div class="bottoni" style="margin-top:0">${ext('https://www.google.com/search?q=' + encodeURIComponent('volo ' + [r.compagnia, r.numero].filter(Boolean).join(' ')), 'maps', ic('aereo') + 'Stato su Google')}
+        ${ext('https://www.flightradar24.com/data/flights/' + encodeURIComponent(String(r.numero).replace(/\s+/g, '').toLowerCase()), '', ic('mappa') + 'Flightradar24')}</div>` : ''}
+      ${modifica}`;
+  }
+  if(k === 'info') return `${testaFoglio(esc(r.titolo))}<div class="blocco"><p style="white-space:pre-line">${esc(r.testo)}</p></div>${modifica}`;
+  return testaFoglio('');
+}
+
+/* modifica di un giorno */
+function foglioGiorno(){
+  const b = S.sheet.bozza, L = vis('luoghi');
+  const ordinati = L.slice().sort((x, y) => (x.tappa === b.tappa ? 0 : 1) - (y.tappa === b.tappa ? 0 : 1) || x.nome.localeCompare(y.nome));
+  return `${testaFoglio(S.sheet.id ? 'Modifica giorno' : 'Nuovo giorno')}
+    <div class="due"><label class="campo"><span>Data</span><input type="date" data-bz="data" value="${esc(b.data)}"></label>
+      <label class="campo"><span>Città</span><select data-bz="tappa">${opzTappe().map(([k, t]) => `<option value="${k}" ${b.tappa === k ? 'selected' : ''}>${esc(t)}</option>`).join('')}</select></label></div>
+    <label class="campo"><span>Titolo</span><input data-bz="titolo" value="${esc(b.titolo)}"></label>
+    <div class="sec" style="margin-top:10px">Attività</div>
+    ${b.voci.map((x, i) => `<div class="voce-ed"><div class="riga-ed">
+        <input placeholder="Orario (es. 9:00)" data-bz="voci.${i}.ora" value="${esc(x.ora)}">
+        <button class="mini" data-a="voceSu" data-i="${i}" ${i ? '' : 'disabled'} aria-label="Sposta su">${ic('freccia')}</button>
+        <button class="mini" data-a="voceVia" data-i="${i}" aria-label="Togli">${ic('x')}</button></div>
+      <textarea placeholder="Cosa si fa" data-bz="voci.${i}.t">${esc(x.t)}</textarea>
+      <select data-bz="voci.${i}.l"><option value="">Nessun luogo sulla mappa</option>${ordinati.map(l =>
+        `<option value="${l.id}" ${x.l === l.id ? 'selected' : ''}>${esc(l.nome)} (${esc(tappa(l.tappa).citta)})</option>`).join('')}</select>
+      <input class="link" placeholder="Link (facoltativo)" type="url" data-bz="voci.${i}.u" value="${esc(x.u || '')}"></div>`).join('')}
+    <button class="btn full" data-a="voceNuova">${ic('piu')}Aggiungi attività</button>
+    <button class="btn primary full" style="margin-top:12px" data-a="salvaGiorno">Salva</button>
+    ${S.sheet.id ? `<button class="btn danger full" style="margin-top:10px" data-a="eliminaGiorno">Elimina giorno</button>` : ''}`;
+}
+
+function foglioImpostazioni(){
+  const P = vis('viaggiatori');
+  const statoTesto = !syncAttiva() ? 'Non attiva: le modifiche restano solo su questo telefono.' :
+    S.sync.stato === 'errore' ? 'Problema: ' + S.sync.errore : S.sync.ora ? 'Attiva. Ultimo aggiornamento alle ' + new Date(S.sync.ora).toLocaleTimeString('it-IT', { hour:'2-digit', minute:'2-digit' }) + '.' : 'Attiva.';
+  return `${testaFoglio('Impostazioni')}
+    <label class="campo"><span>Chi sei?</span><select data-cfg="io">
+      <option value="">Scegli il tuo nome…</option>${P.map(p => `<option value="${p.id}" ${io() === p.id ? 'selected' : ''}>${esc(p.nome)}</option>`).join('')}</select></label>
+    <div class="sec">Nomi dei viaggiatori</div>
+    ${P.map(p => `<label class="campo"><input data-ed="viaggiatori|${p.id}|nome" value="${esc(p.nome)}"></label>`).join('')}
+    <button class="btn full" data-a="nuovoViaggiatore">${ic('piu')}Aggiungi un viaggiatore</button>
+    <div class="sec">Condivisione con gli altri</div>
+    <div class="blocco"><p>${esc(statoTesto)}</p></div>
+    <button class="btn primary full" data-a="invita">${ic('invia')}Invita i compagni di viaggio</button>
+    <p class="nota-pie">Il link d'invito apre l'app già pronta. Mandalo solo ai compagni di viaggio, in privato.</p>
+    <div class="sec">Collegamento al cloud</div>
+    <p class="nota-pie" style="margin:-4px 2px 12px">Da compilare una volta sola, con gli stessi dati di Supabase usati da CHO.</p>
+    <label class="campo"><span>Project URL</span><input data-cfg="url" placeholder="https://xxxx.supabase.co" value="${esc(cfg.url || '')}"></label>
+    <label class="campo"><span>Chiave anon</span><input data-cfg="key" value="${esc(cfg.key || '')}"></label>
+    <label class="campo"><span>Tabella</span><input data-cfg="tabella" placeholder="cho_sync" value="${esc(cfg.tabella || '')}"></label>
+    <button class="btn full" data-a="syncManuale">${ic('sync')}Sincronizza ora</button>
+    ${S.esitoImp ? `<p class="esito">${esc(S.esitoImp)}</p>` : ''}
+    <div class="sec">Altro</div>
+    <div class="due"><button class="btn" data-a="esporta">${ic('giu')}Salva copia</button><button class="btn" data-a="importa">${ic('su')}Carica copia</button></div>
+    <button class="btn danger full" style="margin-top:12px" data-a="esci">Esci da questo telefono</button>
+    <p class="nota-pie">Versione ${VERSIONE}</p>`;
+}
+
+
+/* =========================== AZIONI =========================== */
+const A = {
+  tab(d){ S.tab = d.v; S.animProssimo = true; render(); window.scrollTo(0, 0); },
+  sync(){ syncOra(true); },
+  async sblocca(){
+    const c = normCodice(document.getElementById('codice-in').value);
+    if(c.length < 8){ S.erroreBlocco = 'Il codice è troppo corto.'; render(); return; }
+    S.attesa = true; S.erroreBlocco = ''; render();
+    try{ await applicaSeme(c); cfg.codice = c; salvaCfg(); S.attesa = false; render(); syncOra(); }
+    catch(e){ S.attesa = false; S.erroreBlocco = 'Codice non corretto.'; render(); }
+  },
+  apriGiorno(d){ S.sheet = { tipo:'giornoVista', id:d.id }; render(); },
+  sonoIo(d){
+    cfg.io = d.id; salvaCfg();
+    const dopo = S.sheet && S.sheet.dopo, prima = S.sheet && S.sheet.prima;
+    S.sheet = prima || null;
+    if(dopo) A.pref(dopo); else render();
+  },
+  dett(d){ S.sheet = { tipo:'dett', k:d.k, id:d.id }; render(); },
+  altre(d){ S.altre[d.v] = true; render(); },
+  filtro(d){ S[d.f] = d.v; render(); },
+  citta(d){ S.citta = d.v; render(); },
+  nuovoPunto(){ S.puntoNuovo = true; S.sposta = null; S.sheet = null; S.cassetto = false; window.scrollTo({ top:0, behavior:'smooth' }); render(); },
+  annullaPunto(){ S.puntoNuovo = false; S.sposta = null; render(); },
+  spostaLuogo(d){ S.sposta = d.id; S.puntoNuovo = true; S.sheet = null; S.cassetto = false; window.scrollTo({ top:0, behavior:'smooth' }); render(); },
+  tipo(d){ S.cat = d.v; render(); },
+  cassetto(){ S.cassetto = !S.cassetto; render(); },
+  aggiornaApp(){ aggiornaApp(); },
+  vediLuogo(d){
+    const k = d.k || 'luoghi', r = trova(k, d.id);
+    if(r && conPos(r) && MAPPA){ MAPPA.flyTo([r.lat, r.lon], Math.max(MAPPA.getZoom(), 15), { duration:.6 }); window.scrollTo({ top:0, behavior:'smooth' }); }
+    S.cassetto = false; S.sheet = { tipo:'dett', k, id:d.id }; render();
+  },
+  pref(d){
+    if(!io()){ S.sheet = { tipo:'chiSei', dopo:{ k:d.k, id:d.id }, prima:S.sheet }; render(); return; }
+    const r = JSON.parse(JSON.stringify(trova(d.k, d.id))); r.pref = r.pref || {}; r.pref[io()] = !r.pref[io()];
+    salva(d.k, r); render();
+  },
+  visto(d){ const r = { ...trova('luoghi', d.id) }; r.visto = !r.visto; salva('luoghi', r); render(); },
+  todo(d){ const r = { ...trova('todo', d.id) }; r.fatto = !r.fatto; salva('todo', r); render(); },
+  statoH(d){ const r = { ...trova('alloggi', d.id) }; r.stato = d.v; salva('alloggi', r); render(); },
+  nuovo(d){
+    const base = d.k === 'spese' ? { valuta: oggiISO() >= D.viaggio.partenza ? 'JPY' : 'EUR', data: oggiISO(), chi: io(), cat: (vis('budget')[1] || {}).id }
+      : d.k === 'luoghi' ? { tappa: S.citta !== 'tutte' ? S.citta : '', cat: CAT[S.cat] ? S.cat : 'vedere' } : {};
+    S.sheet = { k:d.k, base }; render();
+  },
+  mod(d){ S.sheet = { k:d.k, id:d.id }; render(); },
+  chiudi(){ S.sheet = null; S.esitoImp = ''; render(); },
+  sfondo(d, e){ if(e.target.classList.contains('velo')) A.chiudi(); },
+  salvaModulo(){
+    const f = document.getElementById('modulo'); if(!f.reportValidity()) return;
+    const sh = S.sheet, sc = SCHEMI[sh.k], rec = sh.id ? { ...trova(sh.k, sh.id) } : { id: uid(sh.k[0]) };
+    for(const c of sc.campi){ let v = f.elements[c.k].value.trim(); if(c.t === 'num' || c.t === 'hidden' && (c.k === 'lat' || c.k === 'lon')) v = v === '' ? '' : Number(v.replace(',', '.')); rec[c.k] = v; }
+    if(sh.k === 'luoghi' && !rec.q) rec.q = isFinite(rec.lat) && rec.lat !== '' ? rec.lat + ',' + rec.lon : rec.nome + ' ' + tappa(rec.tappa).citta;
+    if(sh.k === 'todo' && rec.fatto == null) rec.fatto = false;
+    salva(sh.k, rec); S.sheet = null; render();
+  },
+  eliminaModulo(){ if(!confirm('Eliminare per tutti?')) return; elimina(S.sheet.k, S.sheet.id); S.sheet = null; render(); },
+  modGiorno(d){ const g = trova('giorni', d.id); S.sheet = { tipo:'giorno', id:d.id, bozza: JSON.parse(JSON.stringify({ ...g, voci: g.voci || [] })) }; render(); },
+  nuovoGiorno(){
+    const ult = vis('giorni').map(g => g.data).sort().pop() || D.viaggio.partenza;
+    const data = new Date(Date.parse(ult + 'T12:00:00') + 864e5).toISOString().slice(0, 10);
+    S.sheet = { tipo:'giorno', bozza:{ data, tappa:(tappaDellaNotte(ult) || {}).id || '', titolo:'', voci:[{ ora:'', t:'' }], note:'' } }; render();
+  },
+  voceNuova(){ S.sheet.bozza.voci.push({ ora:'', t:'' }); render(); },
+  voceVia(d){ S.sheet.bozza.voci.splice(+d.i, 1); render(); },
+  voceSu(d){ const v = S.sheet.bozza.voci, i = +d.i; if(i > 0){ [v[i - 1], v[i]] = [v[i], v[i - 1]]; render(); } },
+  salvaGiorno(){
+    const b = S.sheet.bozza; if(!b.titolo.trim()){ alert('Scrivi un titolo.'); return; }
+    b.voci = b.voci.filter(v => (v.t || '').trim()).map(v => { const o = { ora:(v.ora || '').trim(), t:v.t.trim() }; if(v.l) o.l = v.l; if(linkOk(v.u)) o.u = linkOk(v.u); return o; });
+    if(!b.id) b.id = uid('g');
+    salva('giorni', b); S.sheet = { tipo:'giornoVista', id:b.id }; render();
+  },
+  eliminaGiorno(){ if(!confirm('Eliminare questo giorno per tutti?')) return; elimina('giorni', S.sheet.id); S.sheet = null; render(); },
+  impostazioni(){ S.sheet = { tipo:'impostazioni' }; S.esitoImp = ''; render(); },
+  nuovoViaggiatore(){ salva('viaggiatori', { id: uid('p'), nome:'Nuovo viaggiatore' }); render(); },
+  syncManuale(){ if(!syncAttiva()){ S.esitoImp = 'Inserisci Project URL e chiave anon di Supabase.'; render(); return; } S.esitoImp = 'Sincronizzo…'; render();
+    syncOra(true).then(() => { if(S.sync.stato === 'ok'){ S.esitoImp = 'Sincronizzato alle ' + new Date().toLocaleTimeString('it-IT'); render(); } }); },
+  async invita(){
+    const url = linkInvito();
+    const testo = 'Ecco l’app del nostro viaggio: ' + MARCHIO.app.nome + '. Aprila dal telefono e aggiungila alla schermata Home: ' + url;
+    if(!syncAttiva()) S.esitoImp = 'Attenzione: senza Supabase configurato i compagni vedono il programma ma non le modifiche degli altri.';
+    try{ if(navigator.share){ await navigator.share({ title:MARCHIO.app.nome, text:testo }); return; } }catch(e){ if(e && e.name === 'AbortError') return; }
+    try{ await navigator.clipboard.writeText(url); S.esitoImp = 'Link copiato: incollalo in un messaggio privato.'; }
+    catch(e){ prompt('Copia questo link:', url); }
+    render();
+  },
+  esporta(){
+    const blob = new Blob([JSON.stringify({ app:APP_ID, versione:VERSIONE, dati:D }, null, 1)], { type:'application/json' });
+    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = APP_ID + '-' + oggiISO() + '.json'; a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+  },
+  importa(){
+    const inp = document.createElement('input'); inp.type = 'file'; inp.accept = 'application/json,.json';
+    inp.onchange = () => { const f = inp.files[0]; if(!f) return; f.text().then(t => {
+      try{ const o = JSON.parse(t); if(o.app !== APP_ID || !o.dati) throw 0; D = unisci(D, o.dati); salvaLocale(); pianificaSync(); S.esitoImp = 'Copia importata e unita ai dati.'; render(); }
+      catch(e){ alert('Il file non è una copia di questa app.'); } }); };
+    inp.click();
+  },
+  esci(){
+    if(!confirm('Cancellare i dati del viaggio da questo telefono? Restano nel cloud e negli altri telefoni.')) return;
+    [CFG_KEY, DATI_KEY, SEME_KEY].forEach(k => localStorage.removeItem(k));
+    cfg = {}; D = null; S.sheet = null; render();
+  },
+  csv(){
+    const q = s => '"' + String(s || '').replace(/"/g, '""') + '"';
+    const righe = [['Nome','Indirizzo','Città','Tipo','Note','Sito']].concat(vis('luoghi').map(l =>
+      [l.nome, l.q || l.nome, tappa(l.tappa).citta, (CAT[l.cat] || CAT.altro)[1], l.note, l.link]));
+    const blob = new Blob(['﻿' + righe.map(r => r.map(q).join(',')).join('\n')], { type:'text/csv' });
+    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'luoghi-' + APP_ID + '.csv'; a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+  }
+};
+
+/* Salvataggio dei campi modificabili. Su iPhone toccare un pulsante spesso non
+   toglie il fuoco alla casella, quindi l'evento "change" può non arrivare mai:
+   si salva mentre si scrive (con un attimo di ritardo) e comunque prima di ogni tocco. */
+function salvaCampo(el){
+  if(!el || !el.dataset) return false;
+  if(el.dataset.ed){
+    const [k, id, campo] = el.dataset.ed.split('|');
+    let v = el.value; if(el.type === 'number') v = Number(v) || '';
+    if(k === 'viaggio'){ if(D.viaggio[campo] !== v){ salva('viaggio', { ...D.viaggio, [campo]: v }); return true; } }
+    else{ const r = trova(k, id); if(r && r[campo] !== v){ salva(k, { ...r, [campo]: v }); return true; } }
+  }
+  if(el.dataset.cfg){
+    const v = el.value.trim();
+    if(cfg[el.dataset.cfg] !== v){ cfg[el.dataset.cfg] = v; salvaCfg(); return true; }
+  }
+  return false;
+}
+let attesaCampo = null;
+function salvaCampoAttivo(){
+  clearTimeout(attesaCampo);
+  const a = document.activeElement;
+  return a && /INPUT|TEXTAREA|SELECT/.test(a.tagName) ? salvaCampo(a) : false;
+}
+/* trascinare su o giù la testa del pannello dei luoghi lo apre o lo chiude */
+let tiroY = null;
+document.addEventListener('touchstart', e => { tiroY = e.target.closest('.maniglia, .c-titolo') ? e.touches[0].clientY : null; }, { passive:true });
+document.addEventListener('touchend', e => {
+  if(tiroY == null) return;
+  const dy = e.changedTouches[0].clientY - tiroY; tiroY = null;
+  if(dy < -25 && !S.cassetto){ S.cassetto = true; render(); }
+  else if(dy > 25 && S.cassetto){ S.cassetto = false; render(); }
+}, { passive:true });
+document.addEventListener('click', e => {
+  const b = e.target.closest('[data-a]'); if(!b) return;
+  if(b.dataset.a === 'sfondo' && b !== e.target) return;
+  salvaCampoAttivo();
+  const f = A[b.dataset.a]; if(f){ e.preventDefault(); f(b.dataset, e); }
+});
+document.addEventListener('input', e => {
+  const el = e.target;
+  if(el.dataset.bz && S.sheet && S.sheet.bozza){
+    const p = el.dataset.bz.split('.'); let o = S.sheet.bozza;
+    while(p.length > 1) o = o[p.shift()];
+    o[p[0]] = el.value;
+  }
+  if(el.dataset.ed || el.dataset.cfg){ clearTimeout(attesaCampo); attesaCampo = setTimeout(() => salvaCampo(el), 600); }
+});
+document.addEventListener('change', e => {
+  const el = e.target;
+  if(!(el.dataset.ed || el.dataset.cfg)) return;
+  clearTimeout(attesaCampo);
+  salvaCampo(el);
+  if(el.dataset.cfg === 'io' || (el.dataset.ed && S.sheet && S.sheet.tipo !== 'impostazioni')) render();
+});
+document.addEventListener('visibilitychange', () => { if(document.visibilityState === 'hidden') salvaCampoAttivo(); });
+window.addEventListener('pagehide', salvaCampoAttivo);
+document.addEventListener('focusout', () => setTimeout(() => {
+  const a = document.activeElement;
+  if(S.renderInSospeso && !(a && /INPUT|TEXTAREA|SELECT/.test(a.tagName))) render();
+}, 50));
+document.addEventListener('visibilitychange', () => { if(document.visibilityState === 'visible' && cfg.codice && D) syncOra(); });
+setInterval(() => { if(document.visibilityState === 'visible' && cfg.codice && D && !inSync) syncOra(); }, 60000);
+
+(async function avvio(){
+  const alba = document.getElementById('alba');
+  if(alba){ const via = () => alba.remove(); alba.addEventListener('click', via); setTimeout(via, 3600); }
+  leggiInvito();
+  if(cfg.codice){
+    try{ await applicaSeme(cfg.codice); }
+    catch(e){ if(!D){ S.erroreBlocco = 'Il codice salvato non apre i dati: inseriscilo di nuovo.'; cfg.codice = ''; salvaCfg(); } }
+  }
+  render();
+  if(cfg.codice && D) syncOra();
+  if('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
+  setTimeout(controllaVersione, 2500);
+  setInterval(controllaVersione, 10 * 60 * 1000);
+  document.addEventListener('visibilitychange', () => { if(document.visibilityState === 'visible') controllaVersione(); });
+})();
+
+/* ---------- nuove versioni: si legge VERSIONE dalla pagina pubblicata, saltando ogni cache ---------- */
+async function controllaVersione(){
+  if(!navigator.onLine) return;
+  try{
+    const t = await (await fetch('index.html?v=' + Date.now(), { cache:'no-store' })).text();
+    const m = t.match(/const VERSIONE = '([^']+)'/);
+    if(m && m[1] !== VERSIONE) avvisoVersione(m[1]);
+  }catch(e){}
+}
+function avvisoVersione(v){
+  let el = document.getElementById('nuova');
+  if(!el){ el = document.createElement('div'); el.id = 'nuova'; document.body.appendChild(el); }
+  el.innerHTML = `<span>È disponibile la versione <b>${esc(v)}</b><br><small>Ora hai la ${esc(VERSIONE)}</small></span><button data-a="aggiornaApp">Aggiorna</button>`;
+}
+async function aggiornaApp(){
+  const el = document.getElementById('nuova'); if(el) el.querySelector('button').textContent = 'Un attimo…';
+  try{
+    if('serviceWorker' in navigator){ const r = await navigator.serviceWorker.getRegistration(); if(r) await r.update(); }
+    if(window.caches) for(const k of await caches.keys()) if(k.startsWith(APP_ID + '-')) await caches.delete(k);
+  }catch(e){}
+  location.replace(location.pathname + '?v=' + Date.now() + location.hash);
+}
+</script>
+</body>
+</html>
